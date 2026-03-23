@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MediFind Chat</title>
+    <style>
+        body {
+            font-family: Arial;
+            background-color: #f2f2f2;
+        }
+
+        .chat-container {
+            width: 400px;
+            margin: 50px auto;
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 15px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        .chat-box {
+            height: 300px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+        }
+
+        .user {
+            text-align: right;
+            color: blue;
+            margin: 5px;
+        }
+
+        .bot {
+            text-align: left;
+            color: green;
+            margin: 5px;
+        }
+
+        input {
+            width: 70%;
+            padding: 8px;
+        }
+
+        button {
+            padding: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="chat-container">
+        <h2>MediFind Chat</h2>
+
+        <div class="chat-box" id="chatBox">
+            <div class="bot">Hello! Tell me your symptoms.</div>
+        </div>
+
+        <input type="text" id="userInput" placeholder="Type here...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        function sendMessage() {
+            var input = document.getElementById("userInput").value;
+            var chatBox = document.getElementById("chatBox");
+
+            if (input === "") return;
+
+            //user message
+            chatBox.innerHTML += "<div class='user'>" + input + "</div>";
+
+            var response = "";
+
+            if (input.toLowerCase().includes("chest")) {
+                response = "You should consult a Cardiologist.";
+            } 
+            else if (input.toLowerCase().includes("skin")) {
+                response = "You should consult a Dermatologist.";
+            } 
+            else if (input.toLowerCase().includes("tooth" || "teeth")) {
+                response = "You should consult a Dentist.";
+            } 
+            else {
+                response = "Please provide more details about your symptoms.";
+            }
+
+            //bot response
+            chatBox.innerHTML += "<div class='bot'>" + response + "</div>";
+
+            document.getElementById("userInput").value = "";
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+
+</body>
+</html>
