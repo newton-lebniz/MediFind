@@ -82,8 +82,20 @@
             else if (input.toLowerCase().includes("skin")) {
                 response = "You should consult a Dermatologist.";
             } 
-            else if (input.toLowerCase().includes("tooth" || "teeth")) {
+            else if (input.toLowerCase().includes("tooth") || input.toLowerCase().includes("teeth")) {
                 response = "You should consult a Dentist.";
+            } 
+            else if (input.toLowerCase().includes("eye") || input.toLowerCase().includes("vision")) {
+                response = "You should consult a opthalmologist";
+            } 
+            else if (input.toLowerCase().includes("joint") || input.toLowerCase().includes("bone")) {
+                response = "You should consult a orthopedic";
+            } 
+            else if (input.toLowerCase().includes("ear") || input.toLowerCase().includes("nose")) {
+                response = "You should consult a ENT specialist";
+            } 
+            else if (input.toLowerCase().includes("fever") || input.toLowerCase().includes("cough")) {
+                response = "You should consult a general physician";
             } 
             else {
                 response = "Please provide more details about your symptoms.";
@@ -94,6 +106,11 @@
 
             document.getElementById("userInput").value = "";
             chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // press Enter to send
+        function handleEnter(event) {
+            if (event.key === "Enter") sendMessage();
         }
     </script>
 
