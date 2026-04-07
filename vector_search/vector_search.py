@@ -11,7 +11,9 @@ specializations = [
     "opthalmologist(eye-doctor) treats eye pain vision blur",
     "otolaryngologist treats ear nose throat neck ",
     "dentist treats tooth teeth gum pain",
-    "general physician treats fever cold cough flu",
+    "general-physician treats fever cold cough flu",
+    "nephrologist treats kidney hypertension dial",
+    "gynecologist uterus ovaries breats menstruation infertility",
 ]
 
 # converting specializations to vector 
@@ -36,3 +38,4 @@ print(get_doctor("my heart keeps racing"))
 print(get_doctor("I have a weird rash on my arm"))
 print(get_doctor("my vision is blurry"))
 print(get_doctor("I feel dizzy and have chest pressure"))
+
