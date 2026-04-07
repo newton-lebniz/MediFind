@@ -60,20 +60,21 @@
             <div class="bot">Hello! Tell me your symptoms.</div>
         </div>
 
-        <input type="text" id="userInput" placeholder="Type here...">
+        <input type="text" id="userInput" placeholder="Type here..." onkeypress="handleEnter(event)">
         <button onclick="sendMessage()">Send</button>
     </div>
 
     <script>
         function sendMessage() {
-            var input = document.getElementById("userInput").value;
+            var input = document.getElementById("userInput").value.trim();
             var chatBox = document.getElementById("chatBox");
 
             if (input === "") return;
 
             //user message
             chatBox.innerHTML += "<div class='user'>" + input + "</div>";
-
+            
+            var lower = input.toLowerCase();
             var response = "";
 
             if (input.toLowerCase().includes("chest")) {
