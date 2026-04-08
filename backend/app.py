@@ -1,8 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 from llm import get_doctor_type
 from db import get_doctors_by_specialization
 
 app = Flask(__name__)
+CORS(app)
 
 
 @app.route("/predict", methods=["POST"])
@@ -41,6 +43,14 @@ def predict():
 @app.route("/")
 def home():
     return "MediFind Backend Running 🚀"
+
+@app.route("/")
+def home():
+    return send_from_directory('../frontend', 'index.html')
+
+@app.route("/<path:filename>")
+def frontend(filename):
+    return send_from_directory('../frontend', filename)
 
 
 if __name__ == "__main__":
