@@ -66,47 +66,30 @@
 
     <script>
         function sendMessage() {
-            var input = document.getElementById("userInput").value.trim();
-            var chatBox = document.getElementById("chatBox");
+            async function sendMessage() {
+    var input = document.getElementById("userInput").value.trim();
+    var chatBox = document.getElementById("chatBox");
+    if (input === "") return;
 
-            if (input === "") return;
+    chatBox.innerHTML += "<div class='user'>" + input + "</div>";
+    document.getElementById("userInput").value = "";
 
-            //user message
-            chatBox.innerHTML += "<div class='user'>" + input + "</div>";
-            
-            var lower = input.toLowerCase();
-            var response = "";
+    const res = await fetch("http://127.0.0.1:5000/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symptom: input })
+    });
 
-            if (input.toLowerCase().includes("chest")) {
-                response = "You should consult a Cardiologist.";
-            } 
-            else if (input.toLowerCase().includes("skin")) {
-                response = "You should consult a Dermatologist.";
-            } 
-            else if (input.toLowerCase().includes("tooth") || input.toLowerCase().includes("teeth")) {
-                response = "You should consult a Dentist.";
-            } 
-            else if (input.toLowerCase().includes("eye") || input.toLowerCase().includes("vision")) {
-                response = "You should consult a opthalmologist";
-            } 
-            else if (input.toLowerCase().includes("joint") || input.toLowerCase().includes("bone")) {
-                response = "You should consult a orthopedic";
-            } 
-            else if (input.toLowerCase().includes("ear") || input.toLowerCase().includes("nose")) {
-                response = "You should consult a ENT specialist";
-            } 
-            else if (input.toLowerCase().includes("fever") || input.toLowerCase().includes("cough")) {
-                response = "You should consult a general physician";
-            } 
-            else {
-                response = "Please provide more details about your symptoms.";
-            }
-
-            //bot response
-            chatBox.innerHTML += "<div class='bot'>" + response + "</div>";
-
-            document.getElementById("userInput").value = "";
-            chatBox.scrollTop = chatBox.scrollHeight;
+    const data = await res.json();
+    let reply = "Recommended: " + data.doctor_type + "<br>";
+    if (data.doctors) {
+        data.doctors.forEach(d => {
+            reply += `⭐ ${d.name} (${d.city}) - Rating: ${d.rating}<br>`;
+        });
+    }
+    chatBox.innerHTML += "<div class='bot'>" + reply + "</div>";
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
         }
 
         // press Enter to send
