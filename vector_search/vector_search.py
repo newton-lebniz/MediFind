@@ -3,7 +3,7 @@ from sentence_transformers import SentenceTransformer, util
 # pretrained bert based model
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-specializations = [
+specializations_descriptions = [
     "cardiologist treats heart chest pain palpations blood pressure",
     "dermatologist treats skin rash itch itching acne infection",
     "neurologist treats headache migraine seizures brain",
@@ -16,8 +16,22 @@ specializations = [
     "gynecologist uterus ovaries breats menstruation infertility",
 ]
 
+# these are the clean names that match your database exactly
+specialization_names = [
+    "Cardiologist",
+    "Dermatologist",
+    "Neurologist",
+    "Orthopedic",
+    "Ophthalmologist",
+    "ENT Specialist",
+    "Dentist",
+    "General Physician",
+    "Nephrologist",
+    "Gynecologist",
+]
+
 # converting specializations to vector 
-spec_vectors = model.encode(specializations)
+spec_vectors = model.encode(specializations_descriptions)
 
 def get_doctor(symptom):
     # symptom to vector
@@ -29,13 +43,26 @@ def get_doctor(symptom):
     # finding index of hightest score
     best_index = scores.argmax()
 
-    #extracting doctor name from string
-    doctor = specializations[best_index].split(" ")[0]
+    # return clean name from separate list
+    return specialization_names[best_index]
 
-    return doctor
+# test it
+if __name__ == "__main__":
+    tests = [
+        "my heart keeps racing",
+        "I have a weird rash on my arm",
+        "my vision is blurry",
+        "my eye burns",
+        "I feel dizzy and have chest pressure",
+        "my tooth hurts",
+        "I have fever and cough",
+        "my knee is stiff",
+        "ear pain and hearing loss",
+    ]
+    for t in tests:
+        print(f"{t:45} → {get_doctor(t)}")
 
-print(get_doctor("my heart keeps racing"))
-print(get_doctor("I have a weird rash on my arm"))
-print(get_doctor("my vision is blurry"))
-print(get_doctor("I feel dizzy and have chest pressure"))
+
+
+ 
 

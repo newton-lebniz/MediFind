@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from llm import get_doctor_type
+import sys
+sys.path.append('../vector_search')
+from vector_search import get_doctor
 from db import get_doctors_by_specialization
 
 app = Flask(__name__)
@@ -18,7 +20,7 @@ def predict():
 
     try:
         # 🧠 Step 1: Get doctor type
-        doctor_type = get_doctor_type(symptom)
+        doctor_type = get_doctor(symptom)
 
         # 🗄️ Step 2: Get doctors
         doctors = get_doctors_by_specialization(doctor_type)
