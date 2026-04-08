@@ -40,9 +40,9 @@ def predict():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/")
-def home():
-    return "MediFind Backend Running 🚀"
+#@app.route("/")
+#def home():
+ #   return "MediFind Backend Running 🚀"
 
 @app.route("/")
 def home():
