@@ -41,7 +41,9 @@ CREATE TABLE Users (
     name VARCHAR(100),
     email VARCHAR(100) UNIQUE,
     password VARCHAR(100),
-    city VARCHAR(50)
+    city VARCHAR(50),
+    latitude DECIMAL(9,6),
+    longitude DECIMAL(9,6)
 );
 CREATE TABLE Appointments (
     appointment_id INT PRIMARY KEY AUTO_INCREMENT,
