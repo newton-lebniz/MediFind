@@ -1,6 +1,6 @@
 import openai
 
-openai.api_key = "AIzaSyCAzuheOb2CnUj34gMK3nag9rR7VihcQg0"
+openai.api_key ="AIzaSyB-CXbRUKUl4YRe3BqwB0YQ_2QgB838r_c"
 
 def ask_chatbot(query):
     response = openai.ChatCompletion.create(
