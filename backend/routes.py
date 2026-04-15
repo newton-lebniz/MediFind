@@ -10,7 +10,7 @@ from ml_model import train_model, predict_score
 
 router = APIRouter()
 
-GOOGLE_API_KEY = "AIzaSyCAzuheOb2CnUj34gMK3nag9rR7VihcQg0"
+GOOGLE_API_KEY = "AIzaSyB-CXbRUKUl4YRe3BqwB0YQ_2QgB838r_c"
 
 
 def get_db():
