@@ -1,4 +1,8 @@
 from fastapi import APIRouter, Depends
+import sys
+sys.path.append('../vector_search')
+from vector_search import is_symptom, get_chat_reply, get_doctor
+
 from sqlalchemy.orm import Session
 import requests
 
@@ -76,6 +80,26 @@ def recommend(lat: float, lng: float, db: Session = Depends(get_db)):
     results.sort(key=lambda x: x["score"], reverse=True)
 
     return results[:10]
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+@router.post("/predict")
+async def predict(request: Request):
+    data = await request.json()
+    message = data.get("symptom", "")
+
+    if not message:
+        return JSONResponse({"error": "No message provided"}, status_code=400)
+
+    try:
+        if is_symptom(message):
+            doctor_type = get_doctor(message)
+            return {"type": "symptom", "doctor_type": doctor_type, "doctors": []}
+        else:
+            reply = get_chat_reply(message)
+            return {"type": "chat", "reply": reply}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 # 🧠 OPENAI CHATBOT
