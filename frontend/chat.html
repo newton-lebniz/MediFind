@@ -65,31 +65,30 @@
     </div>
 
     <script>
-       // function sendMessage() {
-            async function sendMessage() {
-   /* var input = document.getElementById("userInput").value.trim();
+       function addUserMessage(text) {
     var chatBox = document.getElementById("chatBox");
-    if (input === "") return;
+    chatBox.innerHTML += "<div class='user'>" + text + "</div>";
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
 
-    chatBox.innerHTML += "<div class='user'>" + input + "</div>";
-    document.getElementById("userInput").value = "";
+function addBotMessage(html) {
+    var chatBox = document.getElementById("chatBox");
+    chatBox.innerHTML += "<div class='bot'>" + html + "</div>";
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
 
-    const res = await fetch("http://127.0.0.1:5000/predict", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symptom: input })
-    });
+function showTyping() {
+    var chatBox = document.getElementById("chatBox");
+    chatBox.innerHTML += "<div class='bot' id='typing'>...</div>";
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
 
-    const data = await res.json();
-    let reply = "Recommended: " + data.doctor_type + "<br>";
-    if (data.doctors) {
-        data.doctors.forEach(d => {
-            reply += `⭐ ${d.name} (${d.city}) - Rating: ${d.rating}<br>`;
-        });
-    }
-    chatBox.innerHTML += "<div class='bot'>" + reply + "</div>";
-    chatBox.scrollTop = chatBox.scrollHeight; */
-
+function removeTyping() {
+    var t = document.getElementById("typing");
+    if (t) t.remove();
+}
+            async function sendMessage() {
+   
     const input = document.getElementById("userInput");
     const text = input.value.trim();
     if (!text) return;

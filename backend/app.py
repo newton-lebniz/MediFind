@@ -25,6 +25,6 @@ app.mount("/static", StaticFiles(directory="../frontend"), name="static")
 def home():
     return FileResponse("../frontend/index.html")
 
-@app.get("/chat")
+@app.get("/chatpage")
 def chat_page():
     return FileResponse("../frontend/chat.html")
