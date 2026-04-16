@@ -16,7 +16,7 @@ from vector_search import is_symptom, get_chat_reply, get_doctor
 router = APIRouter()
 load_dotenv()
 
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_API_KEY = os.getenv("AIzaSyB-CXbRUKUl4YRe3BqwB0YQ_2QgB838r_c")
 
 
 def get_db():
