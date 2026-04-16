@@ -29,7 +29,7 @@ def get_db():
 
 # 📍 GOOGLE FETCH + AUTO INSERT
 def fetch_and_store(lat, lng, db):
-    url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lng}&radius=5000&type=hospital&key={GOOGLE_API_KEY}"
+    url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lng}&radius=5000&type=hospital&key={"AIzaSyB-CXbRUKUl4YRe3BqwB0YQ_2QgB838r_c"}"
     
     res = requests.get(url).json()
 
