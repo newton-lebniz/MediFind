@@ -1,11 +1,11 @@
-from google import genai
+from groq import Groq
+from sentence_transformers import SentenceTransformer, util
 import os
 from dotenv import load_dotenv
-load_dotenv()
-from sentence_transformers import SentenceTransformer, util
 
-# --- Gemini setup ---
-client = genai.Client(api_key=os.getenv("AIzaSyCAzuheOb2CnUj34gMK3nag9rR7VihcQg0"))
+load_dotenv()
+
+client = Groq(api_key=os.getenv("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"))
 
 # pretrained bert based model
 model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -43,14 +43,14 @@ def is_symptom(message):
     prompt = f"""You are a medical chatbot classifier.
 The user said: "{message}"
 Reply with only one word:
-- SYMPTOM  → if the message describes a health problem, pain, or medical issue
-- CHAT     → if it's a greeting, thanks, general question, or not medical
+- SYMPTOM → if health problem, pain, or medical issue
+- CHAT    → if greeting, thanks, or not medical
 One word only."""
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}]
     )
-    result = response.text.strip().upper()
+    result = response.choices[0].message.content.strip().upper()
     return "SYMPTOM" in result
 
 def get_chat_reply(message):
@@ -58,11 +58,11 @@ def get_chat_reply(message):
 The user said: "{message}"
 Reply in 1-2 short friendly sentences.
 If they seem unwell, gently ask them to describe their symptoms."""
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}]
     )
-    return response.text.strip()
+    return response.choices[0].message.content.strip()
 
 def get_doctor(symptom):
     # symptom to vector
