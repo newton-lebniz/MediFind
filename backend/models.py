@@ -1,12 +1,15 @@
 from sqlalchemy import Column, Integer, String, Float
 from db import Base
 
-class Hospitals(Base):
-    __tablename__ = "Hospitals"
+# ✅ Doctors table
+class Doctors(Base):
+    __tablename__ = "Doctors"
 
-    hospital_id = Column(Integer, primary_key=True, index=True)
-    hospital_name = Column(String(100))
-    city = Column(String(50))
+    doctor_id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    specialization = Column(String)
+    hospital_name = Column(String)
+    city = Column(String)
     rating = Column(Float)
     latitude = Column(Float)
     longitude = Column(Float)
