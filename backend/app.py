@@ -1,15 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from db import Base, engine
 from routes import router
 
+# ✅ create tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# ✅ CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,14 +18,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ✅ include routes
 app.include_router(router)
 
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
+# ✅ frontend
 @app.get("/")
 def home():
-    return FileResponse("frontend/index.html")
+    return FileResponse("index.html")
+
 
 @app.get("/chatpage")
 def chat():
-    return FileResponse("frontend/chat.html")
+    return FileResponse("chat.html")
