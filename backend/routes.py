@@ -1,7 +1,6 @@
-import sys
-sys.path.append('../vector_search')
 from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from db import SessionLocal
 from models import Doctors
 from vector_search import is_symptom, get_chat_reply, get_doctor
@@ -19,28 +18,44 @@ def get_db():
         db.close()
 
 
-# 🔥 Supported cities (must match DB)
-KNOWN_CITIES = ["raichur", "mumbai", "bangalore", "hyderabad", "delhi", "kolkata"]
+# 🔥 Get all cities dynamically (normalized)
+def get_all_cities(db):
+    cities = db.query(Doctors.city).distinct().all()
+    return list(set([c[0].strip().lower() for c in cities if c[0]]))
 
 
-# 🔥 Smart city extraction (case + typo tolerant)
-def extract_city(text):
+# 🔥 Extract city (case + typo + flexible)
+def extract_city(text, db):
     text = text.lower()
+    cities = get_all_cities(db)
 
-    # pattern-based extraction
+    # pattern: from/in/at
     match = re.search(r"(?:from|in|at)\s+([a-z]+)", text)
     if match:
         word = match.group(1)
-        best = get_close_matches(word, KNOWN_CITIES, n=1, cutoff=0.6)
-        return best[0] if best else None
-
-    # fallback: scan words
-    words = re.findall(r"[a-z]+", text)
-    for w in words:
-        best = get_close_matches(w, KNOWN_CITIES, n=1, cutoff=0.75)
+        best = get_close_matches(word, cities, n=1, cutoff=0.6)
         if best:
             return best[0]
 
+    # fallback: scan all words
+    words = re.findall(r"[a-z]+", text)
+    for w in words:
+        best = get_close_matches(w, cities, n=1, cutoff=0.75)
+        if best:
+            return best[0]
+
+    return None
+
+
+# 🔥 Extract hospital (case insensitive)
+def extract_hospital(text, db):
+    text = text.lower()
+    hospitals = db.query(Doctors.hospital_name).distinct().all()
+    hospitals = [h[0].strip().lower() for h in hospitals if h[0]]
+
+    for h in hospitals:
+        if h in text:
+            return h
     return None
 
 
@@ -50,7 +65,7 @@ async def predict(request: Request, db: Session = Depends(get_db)):
     message = data.get("symptom", "")
 
     try:
-        # 💬 CHAT MODE
+        # 💬 Chat mode
         if not is_symptom(message):
             return {
                 "type": "chat",
@@ -58,36 +73,48 @@ async def predict(request: Request, db: Session = Depends(get_db)):
             }
 
         doctor_type = get_doctor(message)
-        city = extract_city(message)
+        city = extract_city(message, db)
+        hospital = extract_hospital(message, db)
 
         print("Detected city:", city)
+        print("Detected hospital:", hospital)
 
-        # 🔥 STRICT FILTER (city + specialization)
-        if city:
-            doctors = db.query(Doctors).filter(
-                Doctors.specialization == doctor_type,
-                Doctors.city.ilike(f"%{city}%")
-            ).order_by(Doctors.rating.desc()).all()
-        else:
-            doctors = db.query(Doctors).filter(
-                Doctors.specialization == doctor_type
-            ).order_by(Doctors.rating.desc()).all()
+        # 🔥 Base query
+        query = db.query(Doctors).filter(
+            func.lower(Doctors.specialization) == doctor_type.lower()
+        )
 
-        # 🔥 FALLBACK if no doctors in city
+        # 🔥 Priority 1: Hospital
+        if hospital:
+            query = query.filter(
+                func.lower(Doctors.hospital_name).contains(hospital)
+            )
+
+        # 🔥 Priority 2: City
+        elif city:
+            query = query.filter(
+                func.lower(Doctors.city) == city
+            )
+
+        doctors = query.order_by(Doctors.rating.desc()).all()
+
+        # 🔥 Fallback: only specialization
         if not doctors:
             doctors = db.query(Doctors).filter(
-                Doctors.specialization == doctor_type
+                func.lower(Doctors.specialization) == doctor_type.lower()
             ).order_by(Doctors.rating.desc()).all()
 
         result = []
 
         for i, d in enumerate(doctors):
             result.append({
-                "doctor": d.name,
-                "hospital": d.hospital_name,
-                "area": d.city,
-                "rating": d.rating,
-                "speciality": d.specialization,
+                "doctor": d.name or "Unknown",
+                "hospital": d.hospital_name or "Unknown",
+                "area": d.city or "Unknown",
+                "rating": float(d.rating or 0),
+                "speciality": d.specialization or "Unknown",
+                "lat": float(d.latitude or 0),
+                "lng": float(d.longitude or 0),
                 "best": True if i == 0 else False
             })
 
