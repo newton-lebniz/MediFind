@@ -1,13 +1,10 @@
-import sys
-sys.path.append('/mnt/c/Users/ASUS/OneDrive/Desktop/MediFind/vector_search')
-
 from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session
 from db import SessionLocal
 from models import Doctors
 from vector_search import is_symptom, get_chat_reply, get_doctor
 import re
-
+from difflib import get_close_matches
 
 router = APIRouter()
 
@@ -20,11 +17,29 @@ def get_db():
         db.close()
 
 
-# ✅ FIXED city extraction
+# 🔥 Supported cities (must match DB)
+KNOWN_CITIES = ["raichur", "mumbai", "bangalore", "hyderabad", "delhi", "kolkata"]
+
+
+# 🔥 Smart city extraction (case + typo tolerant)
 def extract_city(text):
     text = text.lower()
+
+    # pattern-based extraction
     match = re.search(r"(?:from|in|at)\s+([a-z]+)", text)
-    return match.group(1) if match else None
+    if match:
+        word = match.group(1)
+        best = get_close_matches(word, KNOWN_CITIES, n=1, cutoff=0.6)
+        return best[0] if best else None
+
+    # fallback: scan words
+    words = re.findall(r"[a-z]+", text)
+    for w in words:
+        best = get_close_matches(w, KNOWN_CITIES, n=1, cutoff=0.75)
+        if best:
+            return best[0]
+
+    return None
 
 
 @router.post("/predict")
@@ -33,7 +48,7 @@ async def predict(request: Request, db: Session = Depends(get_db)):
     message = data.get("symptom", "")
 
     try:
-        # chat
+        # 💬 CHAT MODE
         if not is_symptom(message):
             return {
                 "type": "chat",
@@ -45,7 +60,7 @@ async def predict(request: Request, db: Session = Depends(get_db)):
 
         print("Detected city:", city)
 
-        # 🔥 STRICT FILTER FIRST
+        # 🔥 STRICT FILTER (city + specialization)
         if city:
             doctors = db.query(Doctors).filter(
                 Doctors.specialization == doctor_type,
@@ -56,7 +71,7 @@ async def predict(request: Request, db: Session = Depends(get_db)):
                 Doctors.specialization == doctor_type
             ).order_by(Doctors.rating.desc()).all()
 
-        # 🔥 FALLBACK
+        # 🔥 FALLBACK if no doctors in city
         if not doctors:
             doctors = db.query(Doctors).filter(
                 Doctors.specialization == doctor_type
