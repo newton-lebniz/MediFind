@@ -1,5 +1,5 @@
 import sys
-sys.path.append('../vector_search) 
+sys.path.append('../vector_search') 
 
 from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session
