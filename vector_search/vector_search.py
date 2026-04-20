@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Groq(api_key=os.getenv("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"))
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # pretrained bert based model
 model = SentenceTransformer('all-MiniLM-L6-v2')

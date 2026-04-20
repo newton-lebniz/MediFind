@@ -1,9 +1,13 @@
+import sys
+sys.path.append('/mnt/c/Users/ASUS/OneDrive/Desktop/MediFind/vector_search')
+
 from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session
 from db import SessionLocal
 from models import Doctors
 from vector_search import is_symptom, get_chat_reply, get_doctor
 import re
+
 
 router = APIRouter()
 

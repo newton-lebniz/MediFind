@@ -25,9 +25,8 @@ app.include_router(router)
 # ✅ frontend
 @app.get("/")
 def home():
-    return FileResponse("index.html")
-
+    return FileResponse("../frontend/index.html")
 
 @app.get("/chatpage")
 def chat():
-    return FileResponse("chat.html")
+    return FileResponse("../frontend/chat.html")
