@@ -2,42 +2,56 @@
 <html>
 <head>
     <title>MediFind Chat</title>
+
     <style>
         body {
             font-family: Arial;
-            background-color: #f2f2f2;
+            background: #f2f2f2;
         }
 
         .chat-container {
-            width: 400px;
-            margin: 50px auto;
-            background-color: white;
+            width: 450px;
+            margin: 40px auto;
+            background: white;
+            padding: 20px;
             border: 1px solid #ccc;
-            padding: 15px;
-        }
-
-        h2 {
-            text-align: center;
         }
 
         .chat-box {
-            height: 300px;
+            height: 320px;
+            overflow-y: scroll;
             border: 1px solid #ccc;
             padding: 10px;
-            overflow-y: scroll;
             margin-bottom: 10px;
         }
 
         .user {
             text-align: right;
             color: blue;
-            margin: 5px;
         }
 
         .bot {
             text-align: left;
             color: green;
-            margin: 5px;
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 10px;
+            background: #f9f9f9;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .card:hover {
+            background: #e6f2ff;
+            transform: scale(1.02);
+        }
+
+        .best {
+            border: 2px solid gold;
         }
 
         input {
@@ -53,105 +67,86 @@
 
 <body>
 
-    <div class="chat-container">
-        <h2>MediFind Chat</h2>
+<div class="chat-container">
+    <h2>MediFind Chat</h2>
 
-        <div class="chat-box" id="chatBox">
-            <div class="bot">Hello! Tell me your symptoms.</div>
-        </div>
-
-        <input type="text" id="userInput" placeholder="Type here..." onkeypress="handleEnter(event)">
-        <button onclick="sendMessage()">Send</button>
+    <div class="chat-box" id="chatBox">
+        <div class="bot">Hello! Tell me your symptoms.</div>
     </div>
 
-    <script>
-       function addUserMessage(text) {
-    var chatBox = document.getElementById("chatBox");
-    chatBox.innerHTML += "<div class='user'>" + text + "</div>";
+    <input type="text" id="userInput" placeholder="Type here..." onkeypress="handleEnter(event)">
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+
+let chatBox = document.getElementById("chatBox");
+
+function addUser(text) {
+    chatBox.innerHTML += `<div class="user">${text}</div>`;
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-function addBotMessage(html) {
-    var chatBox = document.getElementById("chatBox");
-    chatBox.innerHTML += "<div class='bot'>" + html + "</div>";
+function addBot(html) {
+    chatBox.innerHTML += `<div class="bot">${html}</div>`;
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-function showTyping() {
-    var chatBox = document.getElementById("chatBox");
-    chatBox.innerHTML += "<div class='bot' id='typing'>...</div>";
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
+async function sendMessage() {
 
-function removeTyping() {
-    var t = document.getElementById("typing");
-    if (t) t.remove();
-}
-            async function sendMessage() {
-   
     const input = document.getElementById("userInput");
     const text = input.value.trim();
+
     if (!text) return;
 
-    addUserMessage(text);
+    addUser(text);
     input.value = "";
-    showTyping();
 
     try {
         const res = await fetch("http://127.0.0.1:8000/predict", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ symptom: text })
         });
 
         const data = await res.json();
-        removeTyping();
 
-        if (data.error) {
-            addBotMessage("Sorry, something went wrong. Please try again.");
-            return;
-        }
-
-        // CHAT response (hi, thanks, etc.)
         if (data.type === "chat") {
-            addBotMessage(data.reply);
+            addBot(data.reply);
             return;
         }
 
-        // SYMPTOM response - show doctors
-        let html = `<span class="specialist-tag">🩺 ${data.doctor_type}</span><br>`;
+        let html = `<b>🩺 ${data.doctor_type}</b><br><br>`;
 
-        if (data.doctors && data.doctors.length > 0) {
-            html += `Here are the top doctors for you:`;
-            data.doctors.forEach(d => {
-                html += `
-                    <div class="doctor-card">
-                        <div class="doc-icon">👨‍⚕️</div>
-                        <div class="doc-info">
-                            <div class="doc-name">${d.name}</div>
-                            <div class="doc-meta">📍 ${d.city}</div>
-                        </div>
-                        <div class="doc-rating">⭐ ${d.rating}</div>
-                    </div>`;
-            });
-        } else {
-            html += data.message || "No doctors found in database yet.";
-        }
+        data.doctors.forEach(d => {
 
-        addBotMessage(html);
+            let badge = d.best ? "⭐ BEST DOCTOR<br>" : "";
+
+            html += `
+                <div class="card ${d.best ? "best" : ""}" 
+                     onclick="alert('Hospital: ${d.hospital}')">
+                    ${badge}
+                    👨‍⚕️ <b>${d.doctor}</b><br>
+                    🏥 ${d.hospital}<br>
+                    📍 ${d.area}<br>
+                    ⭐ ${d.rating}<br>
+                    🩺 ${d.speciality}
+                </div>
+            `;
+        });
+
+        addBot(html);
 
     } catch (err) {
-        removeTyping();
-        addBotMessage("Could not connect to server. Is Flask running?");
+        addBot("Server error. Try again.");
     }
 }
-      //  }
 
-        // press Enter to send
-        function handleEnter(event) {
-            if (event.key === "Enter") sendMessage();
-        }
-    </script>
+function handleEnter(e) {
+    if (e.key === "Enter") sendMessage();
+}
+
+</script>
 
 </body>
 </html>
