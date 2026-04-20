@@ -289,3 +289,5 @@ INSERT INTO Doctors VALUES
 (178,'Dr. Nitin','General Physician','City Clinic','Surat',4.7,21.1000,72.7600),
 (179,'Dr. Harsh','Nephrologist','Kidney Care','Surat',4.5,21.0900,72.7500),
 (180,'Dr. Aarti','Gynecologist','Women Care','Surat',4.6,21.0800,72.7400);
+UPDATE Doctors SET city = LOWER(TRIM(city))
+where doctor_id>0;
