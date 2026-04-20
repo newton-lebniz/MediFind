@@ -198,3 +198,94 @@ INSERT INTO Doctors VALUES
 (118,'Dr. Sukhbir Singh','General Physician','Hospital','Chandigarh',4.7,30.80,76.84),
 (119,'Dr. Baljit Singh','Nephrologist','Kidney Care','Chandigarh',4.5,30.81,76.85),
 (120,'Dr. Navjot Kaur','Gynecologist','Women Care','Chandigarh',4.6,30.82,76.86);
+USE medifind;
+
+-- =====================
+-- INDORE (10)
+-- =====================
+INSERT INTO Doctors VALUES
+(121,'Dr. Ajay Verma','Neurologist','Apollo','Indore',4.6,22.7196,75.8577),
+(122,'Dr. Kunal','Cardiologist','CHL Hospital','Indore',4.7,22.7100,75.8500),
+(123,'Dr. Sneha','Dermatologist','Skin Care','Indore',4.5,22.7000,75.8400),
+(124,'Dr. Rohit','Orthopedic','Bombay Hospital','Indore',4.6,22.6900,75.8300),
+(125,'Dr. Kavita','Ophthalmologist','Eye Clinic','Indore',4.4,22.6800,75.8200),
+(126,'Dr. Rahul','ENT Specialist','ENT Care','Indore',4.5,22.6700,75.8100),
+(127,'Dr. Pooja','Dentist','Dental Hub','Indore',4.6,22.6600,75.8000),
+(128,'Dr. Amit','General Physician','City Clinic','Indore',4.7,22.6500,75.7900),
+(129,'Dr. Imran','Nephrologist','Kidney Care','Indore',4.5,22.6400,75.7800),
+(130,'Dr. Neha','Gynecologist','Women Care','Indore',4.6,22.6300,75.7700);
+
+-- =====================
+-- BHOPAL (10)
+-- =====================
+INSERT INTO Doctors VALUES
+(131,'Dr. Rajesh','Neurologist','AIIMS','Bhopal',4.5,23.2599,77.4126),
+(132,'Dr. Sharma','Cardiologist','Bansal Hospital','Bhopal',4.7,23.2500,77.4000),
+(133,'Dr. Anjali','Dermatologist','Skin Care','Bhopal',4.4,23.2400,77.3900),
+(134,'Dr. Vikram','Orthopedic','Chirayu','Bhopal',4.6,23.2300,77.3800),
+(135,'Dr. Meera','Ophthalmologist','Eye Care','Bhopal',4.3,23.2200,77.3700),
+(136,'Dr. Amit','ENT Specialist','ENT Care','Bhopal',4.5,23.2100,77.3600),
+(137,'Dr. Kavita','Dentist','Dental Care','Bhopal',4.6,23.2000,77.3500),
+(138,'Dr. Rohan','General Physician','City Clinic','Bhopal',4.7,23.1900,77.3400),
+(139,'Dr. Suresh','Nephrologist','Kidney Care','Bhopal',4.5,23.1800,77.3300),
+(140,'Dr. Neha','Gynecologist','Women Care','Bhopal',4.6,23.1700,77.3200);
+
+-- =====================
+-- NAGPUR (10)
+-- =====================
+INSERT INTO Doctors VALUES
+(141,'Dr. Prakash','Neurologist','Care Hospital','Nagpur',4.6,21.1458,79.0882),
+(142,'Dr. Kiran','Cardiologist','Wockhardt','Nagpur',4.7,21.1400,79.0800),
+(143,'Dr. Sneha','Dermatologist','Skin Care','Nagpur',4.5,21.1300,79.0700),
+(144,'Dr. Rohit','Orthopedic','Kingsway','Nagpur',4.6,21.1200,79.0600),
+(145,'Dr. Kavita','Ophthalmologist','Eye Care','Nagpur',4.4,21.1100,79.0500),
+(146,'Dr. Rahul','ENT Specialist','ENT Care','Nagpur',4.5,21.1000,79.0400),
+(147,'Dr. Pooja','Dentist','Dental Care','Nagpur',4.6,21.0900,79.0300),
+(148,'Dr. Amit','General Physician','City Clinic','Nagpur',4.7,21.0800,79.0200),
+(149,'Dr. Imran','Nephrologist','Kidney Care','Nagpur',4.5,21.0700,79.0100),
+(150,'Dr. Neha','Gynecologist','Women Care','Nagpur',4.6,21.0600,79.0000);
+
+-- =====================
+-- COIMBATORE (10)
+-- =====================
+INSERT INTO Doctors VALUES
+(151,'Dr. Siva','Neurologist','KMCH','Coimbatore',4.6,11.0168,76.9558),
+(152,'Dr. Kumar','Cardiologist','Ganga Hospital','Coimbatore',4.7,11.0100,76.9500),
+(153,'Dr. Priya','Dermatologist','Skin Care','Coimbatore',4.5,11.0000,76.9400),
+(154,'Dr. Naveen','Orthopedic','PSG','Coimbatore',4.6,10.9900,76.9300),
+(155,'Dr. Kavya','Ophthalmologist','Eye Clinic','Coimbatore',4.4,10.9800,76.9200),
+(156,'Dr. Hari','ENT Specialist','ENT Care','Coimbatore',4.5,10.9700,76.9100),
+(157,'Dr. Anu','Dentist','Dental Care','Coimbatore',4.6,10.9600,76.9000),
+(158,'Dr. Ramesh','General Physician','City Clinic','Coimbatore',4.7,10.9500,76.8900),
+(159,'Dr. Vinay','Nephrologist','Kidney Care','Coimbatore',4.5,10.9400,76.8800),
+(160,'Dr. Meena','Gynecologist','Women Care','Coimbatore',4.6,10.9300,76.8700);
+
+-- =====================
+-- VISAKHAPATNAM (10)
+-- =====================
+INSERT INTO Doctors VALUES
+(161,'Dr. Suresh','Neurologist','Apollo','Visakhapatnam',4.6,17.6868,83.2185),
+(162,'Dr. Ramesh','Cardiologist','Care Hospital','Visakhapatnam',4.7,17.6800,83.2100),
+(163,'Dr. Anjali','Dermatologist','Skin Care','Visakhapatnam',4.5,17.6700,83.2000),
+(164,'Dr. Kiran','Orthopedic','Seven Hills','Visakhapatnam',4.6,17.6600,83.1900),
+(165,'Dr. Swathi','Ophthalmologist','Eye Care','Visakhapatnam',4.4,17.6500,83.1800),
+(166,'Dr. Teja','ENT Specialist','ENT Care','Visakhapatnam',4.5,17.6400,83.1700),
+(167,'Dr. Pavan','Dentist','Dental Care','Visakhapatnam',4.6,17.6300,83.1600),
+(168,'Dr. Rakesh','General Physician','City Clinic','Visakhapatnam',4.7,17.6200,83.1500),
+(169,'Dr. Manoj','Nephrologist','Kidney Care','Visakhapatnam',4.5,17.6100,83.1400),
+(170,'Dr. Lavanya','Gynecologist','Women Care','Visakhapatnam',4.6,17.6000,83.1300);
+
+-- =====================
+-- SURAT (10)
+-- =====================
+INSERT INTO Doctors VALUES
+(171,'Dr. Patel','Neurologist','Apollo','Surat',4.6,21.1702,72.8311),
+(172,'Dr. Shah','Cardiologist','Sterling','Surat',4.7,21.1600,72.8200),
+(173,'Dr. Mehta','Dermatologist','Skin Care','Surat',4.5,21.1500,72.8100),
+(174,'Dr. Desai','Orthopedic','Sunshine','Surat',4.6,21.1400,72.8000),
+(175,'Dr. Bhavya','Ophthalmologist','Eye Care','Surat',4.4,21.1300,72.7900),
+(176,'Dr. Rakesh','ENT Specialist','ENT Care','Surat',4.5,21.1200,72.7800),
+(177,'Dr. Sejal','Dentist','Dental Care','Surat',4.6,21.1100,72.7700),
+(178,'Dr. Nitin','General Physician','City Clinic','Surat',4.7,21.1000,72.7600),
+(179,'Dr. Harsh','Nephrologist','Kidney Care','Surat',4.5,21.0900,72.7500),
+(180,'Dr. Aarti','Gynecologist','Women Care','Surat',4.6,21.0800,72.7400);
