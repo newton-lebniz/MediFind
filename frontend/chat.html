@@ -81,6 +81,7 @@
 <script>
 
 let chatBox = document.getElementById("chatBox");
+window.pendingDoctorType = null;
 
 function addUser(text) {
     chatBox.innerHTML += `<div class="user">${text}</div>`;
@@ -106,7 +107,11 @@ async function sendMessage() {
         const res = await fetch("http://127.0.0.1:8000/predict", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ symptom: text })
+            body: JSON.stringify({ 
+            symptom: text,
+            waiting_for_city: window.pendingDoctorType ? true : false,
+            doctor_type: window.pendingDoctorType || null
+                 })
         });
 
         const data = await res.json();
@@ -116,6 +121,14 @@ async function sendMessage() {
             return;
         }
 
+        if(data.type === "ask_city"){
+            addBot(data.reply);
+            window.pendingDoctorType = data.doctor_type;
+            return;
+        }
+
+        //symptom responsee
+        window.pendingDoctorType = null;
         let html = `<b>🩺 ${data.doctor_type}</b><br><br>`;
 
         data.doctors.forEach(d => {

@@ -12,15 +12,15 @@ model = SentenceTransformer('all-MiniLM-L6-v2')
 
 specializations_descriptions = [
     "cardiologist treats heart chest pain palpations blood pressure",
-    "dermatologist treats skin rash itch itching acne infection",
+    "dermatologist treats skin rash itch itching acne infection burns wound",
     "neurologist treats headache migraine seizures brain",
     "orthopedic treats joint pain bone break fracture stiffness",
     "opthalmologist(eye-doctor) treats eye pain vision blur",
     "otolaryngologist treats ear nose throat neck ",
     "dentist treats tooth teeth gum pain cavity",
     "general-physician treats fever cold cough flu fatigue",
-    "nephrologist treats kidney hypertension dialysis urination",
     "gynecologist uterus ovaries breats menstruation infertility",
+    "nephrologist treats kidney hypertension dialysis urination",
 ]
 
 specialization_names = [
@@ -32,26 +32,44 @@ specialization_names = [
     "ENT Specialist",
     "Dentist",
     "General Physician",
-    "Nephrologist",
     "Gynecologist",
+    "Nephrologist",
 ]
 
 # converting specializations to vector 
 spec_vectors = model.encode(specializations_descriptions)
 
-def is_symptom(message):
+def classify_message(message):
     prompt = f"""You are a medical chatbot classifier.
 The user said: "{message}"
-Reply with only one word:
-- SYMPTOM → if health problem, pain, or medical issue
-- CHAT    → if greeting, thanks, or not medical
-One word only."""
+
+Rules:
+- VAGUE  → if the message is too general with NO specific body part or symptom mentioned. Examples: "i'm not well", "i feel sick", "not feeling good", "i'm unwell", "something is wrong"
+- SYMPTOM → if a SPECIFIC body part or problem is mentioned. Examples: "chest pain", "headache", "skin rash", "my knee hurts"
+- QUESTION → if asking to explain a medical condition. Examples: "what is diabetes", "explain folliculitis"
+- CHAT → if greeting or non-medical. Examples: "hi", "thanks", "how are you"
+
+Reply with ONE word only: VAGUE, SYMPTOM, QUESTION, or CHAT"""
+
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}]
     )
-    result = response.choices[0].message.content.strip().upper()
-    return "SYMPTOM" in result
+    return response.choices[0].message.content.strip().upper()
+
+def explain_and_recommend(message):
+    prompt = f"""You are MediFind, a helpful medical assistant.
+The user said: "{message}"
+Do two things:
+1. Briefly explain the condition they mentioned in 2-3 simple sentences.
+2. Tell them which type of doctor they should see and why.
+Keep it friendly, simple, and under 100 words total.
+End with: "Would you like me to find doctors near you?" """
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content.strip()
 
 def get_chat_reply(message):
     prompt = f"""You are MediFind, a friendly medical assistant chatbot.

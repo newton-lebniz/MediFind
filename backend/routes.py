@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from db import SessionLocal
 from models import Doctors
-from vector_search import is_symptom, get_chat_reply, get_doctor
+from vector_search import classify_message, get_chat_reply, explain_and_recommend, get_doctor
 import re
 from difflib import get_close_matches
 
@@ -68,13 +68,43 @@ async def predict(request: Request, db: Session = Depends(get_db)):
     message = data.get("symptom", "")
 
     try:
-        # 💬 Chat mode
-        if not is_symptom(message):
+        
+        vague_phrases = [
+            "not well", "not feeling well", "feel sick", "feeling sick",
+            "unwell", "not good", "feel bad", "feeling bad", "i'm sick",
+            "i am sick", "something is wrong", "don't feel good",
+            "not okay", "not ok", "feeling unwell", "im not well",
+            "i am not well", "i'm not well"
+        ]
+
+        if any(phrase in message.lower() for phrase in vague_phrases):
+            return {
+                "type": "chat",
+                "reply": "I'm sorry to hear that! Could you describe your symptoms in more detail? For example, do you have a headache, chest pain, fever, skin problem, or something else? 🩺"
+            }
+        
+        # Step 2 — LLM classification
+        classification = classify_message(message)
+
+        if classification == "CHAT":
             return {
                 "type": "chat",
                 "reply": get_chat_reply(message)
             }
 
+        elif classification == "QUESTION":
+            return {
+                "type": "chat",
+                "reply": explain_and_recommend(message)
+            }
+
+        elif classification == "VAGUE":
+            return {
+                "type": "chat",
+                "reply": "I'm sorry to hear that! Could you describe your symptoms in more detail? For example, do you have a headache, chest pain, fever, skin problem, or something else? 🩺"
+            }
+        
+#3 SYMPTOM FLOW
         doctor_type = get_doctor(message)
         city = extract_city(message, db)
         hospital = extract_hospital(message, db)
