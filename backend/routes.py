@@ -69,20 +69,6 @@ async def predict(request: Request, db: Session = Depends(get_db)):
 
     try:
         
-        vague_phrases = [
-            "not well", "not feeling well", "feel sick", "feeling sick",
-            "unwell", "not good", "feel bad", "feeling bad", "i'm sick",
-            "i am sick", "something is wrong", "don't feel good",
-            "not okay", "not ok", "feeling unwell", "im not well",
-            "i am not well", "i'm not well"
-        ]
-
-        if any(phrase in message.lower() for phrase in vague_phrases):
-            return {
-                "type": "chat",
-                "reply": "I'm sorry to hear that! Could you describe your symptoms in more detail? For example, do you have a headache, chest pain, fever, skin problem, or something else? 🩺"
-            }
-        
         # Step 2 — LLM classification
         classification = classify_message(message)
 
@@ -101,7 +87,7 @@ async def predict(request: Request, db: Session = Depends(get_db)):
         elif classification == "VAGUE":
             return {
                 "type": "chat",
-                "reply": "I'm sorry to hear that! Could you describe your symptoms in more detail? For example, do you have a headache, chest pain, fever, skin problem, or something else? 🩺"
+                "reply": get_chat_reply(message)
             }
         
 #3 SYMPTOM FLOW
