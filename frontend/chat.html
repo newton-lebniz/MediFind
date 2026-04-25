@@ -163,6 +163,8 @@ function addBot(html) {
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
+let chatHistory = [];
+
 async function sendMessage() {
 
     const input = document.getElementById("userInput");
@@ -171,6 +173,7 @@ async function sendMessage() {
     if (!text) return;
 
     addUser(text);
+    chatHistory.push({"role": "user", "content":text})
     input.value = "";
     addBot("..");
 
@@ -180,6 +183,7 @@ async function sendMessage() {
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ 
             symptom: text,
+            history: chatHistory,
             waiting_for_city: window.pendingDoctorType ? true : false,
             doctor_type: window.pendingDoctorType || null
                  })
@@ -193,6 +197,7 @@ async function sendMessage() {
 
         if (data.type === "chat") {
             addBot(data.reply);
+            chatHistory.push({"role": "assistant", "content": data.reply});
             return;
         }
 
@@ -224,6 +229,7 @@ async function sendMessage() {
         });
 
         addBot(html);
+        chatHistory.push({"role": "assistant", "content": data.doctor_type});
 
     } catch (err) {
         addBot("Server error. Try again.");
@@ -233,6 +239,8 @@ async function sendMessage() {
 function handleEnter(e) {
     if (e.key === "Enter") sendMessage();
 }
+
+
 
 </script>
 

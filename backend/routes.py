@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from db import SessionLocal
 from models import Doctors
-from vector_search import classify_message, get_chat_reply, explain_and_recommend, get_doctor
+from vector_search import classify_message, get_chat_reply, get_chat_reply_with_history, explain_and_recommend, get_doctor
 import re
 from difflib import get_close_matches
 
@@ -66,6 +66,16 @@ def extract_hospital(text, db):
 async def predict(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     message = data.get("symptom", "")
+    history = data.get("history",[])
+
+     # Crisis detection
+    crisis_keywords = ["kill myself", "suicide", "end my life", "want to die", "hurt myself", "self harm"]
+    if any(kw in message.lower() for kw in crisis_keywords):
+        return {
+            "type": "chat",
+            "reply": "I'm really concerned about what you've shared. Please reach out immediately — call iCall at 9152987821 (free, India). You are not alone. 💙"
+        }
+
 
     try:
         
@@ -75,7 +85,7 @@ async def predict(request: Request, db: Session = Depends(get_db)):
         if classification == "CHAT":
             return {
                 "type": "chat",
-                "reply": get_chat_reply(message)
+                "reply": get_chat_reply_with_history(message,history)
             }
 
         elif classification == "QUESTION":
@@ -87,7 +97,7 @@ async def predict(request: Request, db: Session = Depends(get_db)):
         elif classification == "VAGUE":
             return {
                 "type": "chat",
-                "reply": get_chat_reply(message)
+                "reply": get_chat_reply_with_history(message,history)
             }
         
 #3 SYMPTOM FLOW

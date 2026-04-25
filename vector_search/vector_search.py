@@ -82,6 +82,16 @@ If they seem unwell, gently ask them to describe their symptoms."""
     )
     return response.choices[0].message.content.strip()
 
+def get_chat_reply_with_history(message, history):
+    messages = [{"role": "system", "content": "You are MediFind, a friendly medical assistant chatbot. Help users find the right doctor based on symptoms. Keep replies short and helpful. If someone describes a symptom, ask for their city to find nearby doctors."}]
+    messages += history
+    messages.append({"role": "user", "content": message})
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=messages
+    )
+    return response.choices[0].message.content.strip()
+
 def get_doctor(symptom):
     # symptom to vector
     symptom_vector = model.encode(symptom)
