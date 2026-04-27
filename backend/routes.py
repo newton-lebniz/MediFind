@@ -66,6 +66,8 @@ def extract_hospital(text, db):
 async def predict(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     message = data.get("symptom", "")
+    if not message.strip():
+     return {"type": "chat", "reply": "Please describe your symptoms so I can help you."}
     history = data.get("history", [])
     waiting_for_city = data.get("waiting_for_city", False)
     doctor_type_pending = data.get("doctor_type", None)
