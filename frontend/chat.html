@@ -195,15 +195,35 @@ async function sendMessage() {
         const dots = chatBox.querySelectorAll(".bot");
         dots[dots.length - 1].remove();
 
+        if(data.error){
+            addBot("Server error,try again.");
+            return;
+        }
+
         if (data.type === "chat") {
             addBot(data.reply);
             chatHistory.push({"role": "assistant", "content": data.reply});
             return;
         }
 
+        if (data.type === "offer_doctors") {
+        addBot(data.reply + `<br><br>
+        <button onclick="acceptDoctors('${data.doctor_type}')" 
+            style="background:#0f766e;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;margin-right:8px;font-family:Poppins,sans-serif">
+            Yes, find doctors 🏥
+        </button>
+        <button onclick="declineDoctors()" 
+            style="background:#e2e8f0;color:#1e293b;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:Poppins,sans-serif">
+            No thanks
+        </button>`);
+        chatHistory.push({"role": "assistant", "content": data.reply});
+        return;
+        }
+
         if(data.type === "ask_city"){
             addBot(data.reply);
             window.pendingDoctorType = data.doctor_type;
+            chatHistory.push({"role": "assistant", "content":data.reply});
             return;
         }
 
@@ -234,6 +254,31 @@ async function sendMessage() {
     } catch (err) {
         addBot("Server error. Try again.");
     }
+}
+
+function acceptDoctors(doctorType) {
+    window.pendingDoctorType = doctorType;
+    addUser("Yes, find doctors");
+    chatHistory.push({"role": "user", "content": "yes find doctors"});
+
+    fetch("http://127.0.0.1:8000/predict", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            symptom: "yes",
+            offer_accepted: true,
+            doctor_type: doctorType,
+            history: chatHistory
+        })
+    }).then(r => r.json()).then(data => {
+        addBot(data.reply);
+        window.pendingDoctorType = data.doctor_type;
+    });
+}
+
+function declineDoctors() {
+    addBot("No problem! Feel free to ask if you need anything else. 😊");
+    chatHistory.push({"role": "assistant", "content": "User declined doctor search"});
 }
 
 function handleEnter(e) {

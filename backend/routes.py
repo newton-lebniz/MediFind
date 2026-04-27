@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from db import SessionLocal
 from models import Doctors
-from vector_search import classify_message, get_chat_reply, get_chat_reply_with_history, explain_and_recommend, get_doctor
+from vector_search import classify_message, get_chat_reply, get_chat_reply_with_history, explain_and_recommend, get_doctor, triage_symptom
 import re
 from difflib import get_close_matches
 
@@ -66,91 +66,85 @@ def extract_hospital(text, db):
 async def predict(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     message = data.get("symptom", "")
-    history = data.get("history",[])
+    history = data.get("history", [])
+    waiting_for_city = data.get("waiting_for_city", False)
+    doctor_type_pending = data.get("doctor_type", None)
+    offer_accepted = data.get("offer_accepted", False)
 
-     # Crisis detection
+    # EMERGENCY — always first
+    emergency_keywords = [
+        "took too many pills", "too many pills", "overdosed", "overdose",
+        "coughing blood", "vomiting blood", "can't breathe", "cannot breathe",
+        "unconscious", "poisoned", "heavy bleeding", "heart attack", "stroke",
+        "fainted", "severe chest pain", "chest pain right now"
+    ]
+    if any(kw in message.lower() for kw in emergency_keywords):
+        return {
+            "type": "chat",
+            "reply": "🚨 This sounds like a medical emergency! Please call 112 immediately or go to your nearest emergency room. Do not wait. 🚨"
+        }
+
+    # CRISIS
     crisis_keywords = ["kill myself", "suicide", "end my life", "want to die", "hurt myself", "self harm"]
     if any(kw in message.lower() for kw in crisis_keywords):
         return {
             "type": "chat",
-            "reply": "I'm really concerned about what you've shared. Please reach out immediately — call iCall at 9152987821 (free, India). You are not alone. 💙"
+            "reply": "I'm really concerned. Please call iCall at 9152987821 immediately — free and confidential. You are not alone. 💙"
         }
 
-
     try:
-        
-        # Step 2 — LLM classification
+        # User accepted doctor offer — ask for city
+        if offer_accepted and doctor_type_pending:
+            return {
+                "type": "ask_city",
+                "doctor_type": doctor_type_pending,
+                "reply": f"Great! Which city are you in? I'll find the best {doctor_type_pending} near you."
+            }
+
+        # User gave city — show doctors
+        if waiting_for_city and doctor_type_pending:
+            city = extract_city(message, db)
+            if not city:
+                city = message.strip().capitalize()
+            doctors = db.query(Doctors).filter(
+                func.lower(Doctors.specialization) == doctor_type_pending.lower(),
+                func.lower(Doctors.city) == city.lower()
+            ).order_by(Doctors.rating.desc()).all()
+            if not doctors:
+                doctors = db.query(Doctors).filter(
+                    func.lower(Doctors.specialization) == doctor_type_pending.lower()
+                ).order_by(Doctors.rating.desc()).all()
+            result = [{"doctor": d.name, "hospital": d.hospital_name,
+                       "area": d.city, "rating": float(d.rating),
+                       "speciality": d.specialization, "best": i == 0}
+                      for i, d in enumerate(doctors)]
+            return {"type": "symptom", "doctor_type": doctor_type_pending, "doctors": result[:5]}
+
         classification = classify_message(message)
 
-        if classification == "CHAT":
+        if classification == "EMERGENCY":
             return {
                 "type": "chat",
-                "reply": get_chat_reply_with_history(message,history)
+                "reply": "🚨 This sounds serious! Please call 112 immediately or go to your nearest emergency room. Do not wait. 🚨"
             }
+
+        elif classification == "CHAT":
+            return {"type": "chat", "reply": get_chat_reply_with_history(message, history)}
 
         elif classification == "QUESTION":
-            return {
-                "type": "chat",
-                "reply": explain_and_recommend(message)
-            }
+            return {"type": "chat", "reply": explain_and_recommend(message)}
 
         elif classification == "VAGUE":
-            return {
-                "type": "chat",
-                "reply": get_chat_reply_with_history(message,history)
-            }
-        
-#3 SYMPTOM FLOW
+            return {"type": "chat", "reply": get_chat_reply_with_history(message, history)}
+
+        # SYMPTOM FLOW — triage first, offer doctors
         doctor_type = get_doctor(message)
-        city = extract_city(message, db)
-        hospital = extract_hospital(message, db)
-
-        print("Detected city:", city)
-        print("Detected hospital:", hospital)
-
-        # 🔥 Base query
-        query = db.query(Doctors).filter(
-            func.lower(Doctors.specialization) == doctor_type.lower()
-        )
-
-        # 🔥 Priority 1: Hospital
-        if hospital:
-            query = query.filter(
-                func.lower(Doctors.hospital_name).contains(hospital)
-            )
-
-        # 🔥 Priority 2: City
-        elif city:
-            query = query.filter(
-                func.lower(Doctors.city) == city
-            )
-
-        doctors = query.order_by(Doctors.rating.desc()).all()
-
-        # 🔥 Fallback: only specialization
-        if not doctors:
-            doctors = db.query(Doctors).filter(
-                func.lower(Doctors.specialization) == doctor_type.lower()
-            ).order_by(Doctors.rating.desc()).all()
-
-        result = []
-
-        for i, d in enumerate(doctors):
-            result.append({
-                "doctor": d.name or "Unknown",
-                "hospital": d.hospital_name or "Unknown",
-                "area": d.city or "Unknown",
-                "rating": float(d.rating or 0),
-                "speciality": d.specialization or "Unknown",
-                "lat": float(d.latitude or 0),
-                "lng": float(d.longitude or 0),
-                "best": True if i == 0 else False
-            })
+        triage_reply = triage_symptom(message, history)
 
         return {
-            "type": "symptom",
+            "type": "offer_doctors",
             "doctor_type": doctor_type,
-            "doctors": result[:5]
+            "reply": triage_reply
         }
 
     except Exception as e:
