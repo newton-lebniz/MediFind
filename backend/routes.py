@@ -76,13 +76,20 @@ async def predict(request: Request, db: Session = Depends(get_db)):
     # EMERGENCY — always first
     emergency_keywords = [
         "took too many pills", "too many pills", "overdosed", "overdose",
-        "coughing blood", "vomiting blood", "can't breathe", "cannot breathe",
-        "unconscious", "poisoned", "heavy bleeding", "heart attack", "stroke",
-        "fainted", "severe chest pain", "chest pain right now",
-        "stuck in", "stuck up", "foreign body", "bottle stuck",
-    "something stuck", "can't remove", "cannot remove",
-    "broken bone", "bone sticking out", "open fracture"
+    "can't breathe", "cannot breathe", "shortness of breath", "airway blocked",
+    "choking", "someone is choking", "choking me", "suffocating", "drowning",
+    "coughing blood", "vomiting blood", "spitting blood", "heavy bleeding",
+    "bleeding heavily", "won't stop bleeding",
+    "heart attack", "severe chest pain", "chest pain right now",
+    "tight chest", "chest pressure", "left arm pain",
+    "unconscious", "fainted", "passed out", "blacked out",
+    "stabbed", "shot", "being attacked", "can't swallow", "throat blocked",
+    "stuck in", "stuck up", "foreign body", "bottle stuck", "something stuck",
+    "stroke", "face drooping", "arm weak", "speech slurred",
+    "poisoned", "swallowed poison",
+    "paralyzed", "can't move", "seizure", "fits", "convulsions"
     ]
+    
     if any(kw in message.lower() for kw in emergency_keywords):
         return {
             "type": "chat",
