@@ -78,7 +78,10 @@ async def predict(request: Request, db: Session = Depends(get_db)):
         "took too many pills", "too many pills", "overdosed", "overdose",
         "coughing blood", "vomiting blood", "can't breathe", "cannot breathe",
         "unconscious", "poisoned", "heavy bleeding", "heart attack", "stroke",
-        "fainted", "severe chest pain", "chest pain right now"
+        "fainted", "severe chest pain", "chest pain right now",
+        "stuck in", "stuck up", "foreign body", "bottle stuck",
+    "something stuck", "can't remove", "cannot remove",
+    "broken bone", "bone sticking out", "open fracture"
     ]
     if any(kw in message.lower() for kw in emergency_keywords):
         return {
@@ -105,6 +108,15 @@ async def predict(request: Request, db: Session = Depends(get_db)):
 
         # User gave city — show doctors
         if waiting_for_city and doctor_type_pending:
+             # Reject nonsense city inputs
+            invalid_inputs = ["ok", "okay", "yes", "no", "sure", "fine", "k", "hmm", "idk"]
+            if message.strip().lower() in invalid_inputs:
+                  return {
+            "type": "ask_city",
+            "doctor_type": doctor_type_pending,
+            "reply": "I didn't catch that — could you tell me which city you're in? For example: Raichur, Bangalore, Mumbai."
+        }
+
             city = extract_city(message, db)
             if not city:
                 city = message.strip().capitalize()

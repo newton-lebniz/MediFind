@@ -12,9 +12,9 @@ model = SentenceTransformer('all-MiniLM-L6-v2')
 
 specializations_descriptions = [
     "cardiologist treats heart chest pain palpations blood pressure cardiovascular arm numb tight chest",
-    "dermatologist treats skin rash itch acne burns wound",
+    "dermatologist treats skin rash itch acne burns wound hair loss hairfall alopecia",
     "neurologist treats headache migraine seizures brain numbness fainting blackout",
-    "orthopedic treats joint pain bone break fracture stiffness knee back spine finger",
+    "orthopedic treats joint pain bone break fracture stiffness knee back spine finger limb",
     "opthalmologist treats eye pain vision blur irritation redness eye infection dry eyes",
     "ENT specialist treats ear nose throat neck hearing loss ",
     "dentist treats tooth teeth gum pain cavity",
@@ -159,7 +159,3 @@ def get_doctor(symptom):
 
     # return clean name from separate list
     return specialization_names[best_index]
-
-
- 
-
