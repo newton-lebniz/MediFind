@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from db import SessionLocal
 from models import Doctors
-from vector_search import classify_message, get_chat_reply, get_chat_reply_with_history, explain_and_recommend, get_doctor, triage_symptom
+from vector_search import classify_message, get_chat_reply, get_chat_reply_with_history, explain_and_recommend, get_doctor, triage_symptom , extract_symptoms
 import re
 from difflib import get_close_matches
 
@@ -152,7 +152,7 @@ async def predict(request: Request, db: Session = Depends(get_db)):
             return {"type": "chat", "reply": get_chat_reply_with_history(message, history)}
 
         # SYMPTOM FLOW — triage first, offer doctors
-        doctor_type = get_doctor(message)
+        doctor_type = get_doctor(extract_symptoms(message))
         triage_reply = triage_symptom(message, history)
 
         return {
