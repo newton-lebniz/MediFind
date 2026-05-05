@@ -11,13 +11,15 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
 specializations_descriptions = [
-    "cardiologist treats heart diseases chest pain heart attack high blood pressure irregular heartbeat coronary artery disease shortness of breath left arm pain tight chest chest pressure palpitations cardiovascular",
+    "cardiologist treats heart attack chest pain palpations high blood pressure irregular heartbeat coronary artery disease shortness of breath left arm pain tight chest chest pressure palpitations cardiovascular",
     
-    "dermatologist treats skin conditions rash itch itching acne burns wound hair loss hairfall alopecia scalp problems skin infection eczema psoriasis skin redness skin peeling dry skin",
+    "dermatologist treats skin rash acne eczema psoriasis dark spots dark knuckles hyperpigmentation nail problems fungal infection hair loss itching skin discoloration",
     
     "neurologist treats brain and nervous system headache migraine seizures epilepsy dizziness numbness fainting blackout vision black when standing memory loss confusion stroke symptoms tingling",
     
     "orthopedic treats bones joints muscles fracture broken bone joint pain knee pain back pain spine problems stiffness limited movement sports injury arthritis swelling in joints",
+
+    "gastroenterologist treats digestive system stomach pain after eating bloating constipation diarrhea irritable bowel acid reflux heartburn liver problems jaundice nausea vomiting blood in stool",
     
     "ophthalmologist treats eye conditions eye pain vision problems blurry vision burning eyes red eyes dry eyes eye infection conjunctivitis cataract glaucoma difficulty seeing",
     
@@ -33,8 +35,6 @@ specializations_descriptions = [
 
     "pulmonologist treats lungs breathing problems asthma chronic cough wheezing shortness of breath pneumonia bronchitis tuberculosis TB oxygen levels low COPD",
     
-    "gastroenterologist treats digestive system stomach pain after eating bloating constipation diarrhea irritable bowel acid reflux heartburn liver problems jaundice nausea vomiting blood in stool",
-    
     "psychiatrist treats mental health depression anxiety panic attacks mood swings bipolar disorder schizophrenia stress insomnia sleep problems mental illness suicidal thoughts",
     
     "endocrinologist treats hormones diabetes high blood sugar thyroid problems weight gain weight loss unexplained fatigue hormonal imbalance PCOS adrenal problems",
@@ -45,6 +45,7 @@ specialization_names = [
     "Dermatologist",
     "Neurologist",
     "Orthopedic",
+    "Gastroenterologist",
     "Ophthalmologist",
     "ENT Specialist",
     "Dentist",
@@ -52,7 +53,6 @@ specialization_names = [
     "Gynecologist",
     "Nephrologist",
     "Pulmonologist",
-    "Gastroenterologist", 
     "Psychiatrist",
     "Endocrinologist",
 ]
@@ -127,8 +127,8 @@ ONE word only: EMERGENCY, SYMPTOM, QUESTION, VAGUE, or CHAT"""
     return "VAGUE"
 
 
-def triage_symptom(message, history):
-    """Smart triage — assess severity, ask follow up, offer doctors"""
+def ask_followup_questions(message, history):
+    """Ask 3-5 smart questions to understand the symptom better"""
     history_text = "\n".join([f"{m['role']}: {m['content']}" for m in history[-4:]])
     prompt = f"""You are MediFind, a professional medical triage assistant.
 
@@ -137,13 +137,19 @@ Conversation so far:
 
 User just said: "{message}"
 
-Do the following in order:
-1. Assess severity: LOW / MEDIUM / HIGH - brief reason(1 sentence)
-2. Give a brief response (2-3 sentences) — possible causes, what it might mean
-3. Ask ONE smart follow-up question (duration, severity scale, other symptoms)
-4. End with: "Would you like me to find doctors near you?"
+Ask 3 to 5 smart follow-up questions to better understand their condition.
+Cover: duration, severity(1-10), triggers, location of pain and any other relevant detail.
 
-Keep total under 80 words. Do NOT reference previous unrelated symptoms."""
+Format EXACTLY like this:
+To better understand your condition, please answer:
+1.[question]
+2.[question]
+3.[question]
+4.[question if needed]
+5.[question if needed]
+
+Keep each question short. Do NOT assess yet.
+Do NOT suggest doctors yet."""
 
 
     response = client.chat.completions.create(
@@ -153,12 +159,35 @@ Keep total under 80 words. Do NOT reference previous unrelated symptoms."""
     )
     return response.choices[0].message.content.strip()
 
+def assess_and_offer(original_symptom,answers,history):
+    """After user answers questions, assess severity and offer doctors"""
+    history_text = "\n".join([f"{m['role']}:{m['content']}" for m in history[-6:]])
+    prompt = f"""You are MediFind, a porfessional medical triage assistant.
+
+    Patient reported: "{original_symptom}"
+    Their answers to follow up questions:"{answers}"
+    Conversation context: {history_text}
+
+    Do the following in order:
+    1. Severity: statee exactly LOW/MEDIUM/HIGH with 1 sentence reason
+    2. Brief assessment: 1-2 sentences about what this might indicate
+    3. End with EXACTLY this sentence: "Would you like me to find doctors near you?"
+
+    Keep total under 90 words. Be professional and clear."""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        temperature = 0.3
+    )
+    return response.choices[0].message.content.strip()
 
 def explain_and_recommend(message):
     prompt = f"""You are MediFind, a helpful medical assistant.
 The user asked: "{message}"
 1. Briefly explain the condition in 2-3 simple sentences.
 2. Tell them which doctor to see and why.
+
 Keep it under 80 words. End with: "Would you like me to find doctors near you?" """
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",

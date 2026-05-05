@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from db import SessionLocal
 from models import Doctors
-from vector_search import classify_message, get_chat_reply, get_chat_reply_with_history, explain_and_recommend, get_doctor, triage_symptom , extract_symptoms
+from vector_search import classify_message, get_chat_reply, get_chat_reply_with_history, explain_and_recommend, get_doctor, ask_followup_questions, assess_and_offer , extract_symptoms
 import re
 from difflib import get_close_matches
 
@@ -72,6 +72,8 @@ async def predict(request: Request, db: Session = Depends(get_db)):
     waiting_for_city = data.get("waiting_for_city", False)
     doctor_type_pending = data.get("doctor_type", None)
     offer_accepted = data.get("offer_accepted", False)
+    waiting_for_answers = data.get("waiting_for_answers",None)
+    original_symptom = data.get("original_symptom",None)
 
     # EMERGENCY — always first
     emergency_keywords = [
@@ -105,7 +107,7 @@ async def predict(request: Request, db: Session = Depends(get_db)):
         }
 
     try:
-        # User accepted doctor offer — ask for city
+        
         if offer_accepted and doctor_type_pending:
             return {
                 "type": "ask_city",
@@ -141,6 +143,16 @@ async def predict(request: Request, db: Session = Depends(get_db)):
                       for i, d in enumerate(doctors)]
             return {"type": "symptom", "doctor_type": doctor_type_pending, "doctors": result[:5]}
 
+        #User answered the follow up questions 
+        if waiting_for_answers and original_symptom:
+            doctor_type = get_doctor(extract_symptoms(original_symptom))
+            assessment = assess_and_offer(original_symptom,message,history)
+            return{
+                "type":"offer_doctors",
+                "doctor_type": doctor_type,
+                "reply": assessment
+            }
+
         classification = classify_message(message)
 
         if classification == "EMERGENCY":
@@ -159,13 +171,12 @@ async def predict(request: Request, db: Session = Depends(get_db)):
             return {"type": "chat", "reply": get_chat_reply_with_history(message, history)}
 
         # SYMPTOM FLOW — triage first, offer doctors
-        doctor_type = get_doctor(extract_symptoms(message))
-        triage_reply = triage_symptom(message, history)
+        questions = ask_followup_questions(message,history)
 
         return {
-            "type": "offer_doctors",
-            "doctor_type": doctor_type,
-            "reply": triage_reply
+            "type": "ask_questions",
+            "original_symptom": message,
+            "reply": questions
         }
 
     except Exception as e:
