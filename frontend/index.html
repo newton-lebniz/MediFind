@@ -2,160 +2,107 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediFind</title>
-    <!-- favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
-    <style>
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #f9fafb;
-            color: #1a1a1a;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
+    <title>MediFind Login</title>
 
-        .hero {
-            text-align: center;
-            max-width: 560px;
-            padding: 40px;
-        }
+    <link rel="stylesheet"
+          href="/static/style.css">
 
-        .logo-icon {
-            font-size: 60px;
-            margin-bottom: 20px;
-        }
-
-        .logo-text {
-            font-size: 42px;
-            font-weight: 700;
-            color: #2563eb;
-            letter-spacing: -1px;
-        }
-
-        .logo-text span {
-            color: #1a1a1a;
-        }
-
-        .description {
-            margin-top: 16px;
-            font-size: 17px;
-            color: #6b7280;
-            line-height: 1.6;
-        }
-
-        .start-btn {
-            margin-top: 36px;
-            padding: 16px 40px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 30px;
-            font-size: 17px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            transition: background 0.2s, transform 0.2s;
-        }
-
-        .start-btn:hover {
-            background: #1d4ed8;
-            transform: translateY(-2px);
-        }
-
-        .footer-note {
-            margin-top: 24px;
-            font-size: 13px;
-            color: #9ca3af;
-        }
-
-        .cards {
-            display: flex;
-            gap: 16px;
-            margin-top: 48px;
-            justify-content: center;
-        }
-
-        .card {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 16px;
-            padding: 24px 20px;
-            width: 160px;
-            text-align: center;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-        }
-
-        .card-icon {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-
-        .card-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin-bottom: 8px;
-        }
-
-        .card-desc {
-            font-size: 12px;
-            color: #6b7280;
-            line-height: 1.5;
-        }
-    </style>
 </head>
 
 <body>
 
-    <div class="hero">
-        <div class="logo-icon">🏥</div>
-        <div class="logo-text">Medi<span>Find</span></div>
-        <p class="description">
-            Describe your symptoms and well suggest the right doctor near you
-        </p>
-        <a href="/chatpage" class="start-btn">Start Chat →</a>
-        <p class="footer-note">No sign up needed. Free to use.</p>
-        <div class="cards">
+<div class="auth-container">
 
-            <div class="card">
-                <div class="card-icon">🤖</div>
-                <div class="card-title">AI Powered</div>
-                <div class="card-desc">Understands your symptomps</div>
-            </div>
+    <!-- LOGIN -->
 
-            <div class="card">
-                <div class="card-icon">📍</div>
-                <div class="card-title">Find Nearby</div>
-                <div class="card-desc">Enter your city and get doctors closest to you</div>
-            </div>
+    <div class="auth-box"
+         id="loginBox">
 
-            <div class="card">
-                <div class="card-icon">⭐</div>
-                <div class="card-title">Doctor Ratings</div>
-                <div class="card-desc">See individual doctor ratings</div>
-            </div>
+        <h2>
+            MediFind Login
+        </h2>
+
+        <input
+            type="email"
+            id="loginEmail"
+            placeholder="Email"
+        >
+
+        <input
+            type="password"
+            id="loginPassword"
+            placeholder="Password"
+        >
+
+        <button onclick="login()">
+            Login
+        </button>
+
+        <div class="auth-switch">
+
+            Don't have account?
+
+            <span onclick="showSignup()">
+                Signup
+            </span>
 
         </div>
+
     </div>
 
-</body>
+    <!-- SIGNUP -->
 
+    <div class="auth-box"
+         id="signupBox"
+         style="display:none;">
+
+        <h2>
+            MediFind Signup
+        </h2>
+
+        <input
+            type="text"
+            id="signupUsername"
+            placeholder="Username"
+        >
+
+        <input
+            type="email"
+            id="signupEmail"
+            placeholder="Email"
+        >
+
+        <input
+            type="password"
+            id="signupPassword"
+            placeholder="Password"
+        >
+
+        <button onclick="signup()">
+            Signup
+        </button>
+
+        <div class="auth-switch">
+
+            Already have account?
+
+            <span onclick="showLogin()">
+                Login
+            </span>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="/static/app.js"></script>
+
+</body>
 </html>
