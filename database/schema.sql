@@ -291,3 +291,175 @@ INSERT INTO Doctors VALUES
 (180,'Dr. Aarti','Gynecologist','Women Care','Surat',4.6,21.0800,72.7400);
 UPDATE Doctors SET city = LOWER(TRIM(city))
 where doctor_id>0;
+USE medifind;
+
+DROP TABLE IF EXISTS doctor_schedule;
+
+CREATE TABLE doctor_schedule (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    doctor_name VARCHAR(100),
+    day_of_week VARCHAR(20),
+    slot VARCHAR(20)
+);
+
+-- =========================================
+-- 🧠 RULE-BASED SCHEDULE GENERATION
+-- =========================================
+
+-- CARDIOLOGISTS → MORNING + EVENING
+INSERT INTO doctor_schedule (doctor_name, day_of_week, slot)
+SELECT name, day, slot
+FROM Doctors
+JOIN (
+    SELECT 'Monday' day UNION SELECT 'Wednesday' UNION SELECT 'Friday'
+) days
+JOIN (
+    SELECT '10:00 AM' slot UNION SELECT '10:30 AM' UNION SELECT '11:00 AM'
+    UNION SELECT '4:00 PM' UNION SELECT '4:30 PM'
+) slots
+WHERE specialization LIKE '%Cardiologist%';
+
+
+-- DERMATOLOGISTS → AFTERNOON
+INSERT INTO doctor_schedule (doctor_name, day_of_week, slot)
+SELECT name, day, slot
+FROM Doctors
+JOIN (
+    SELECT 'Tuesday' day UNION SELECT 'Thursday'
+) days
+JOIN (
+    SELECT '2:00 PM' slot UNION SELECT '2:30 PM' UNION SELECT '3:00 PM'
+) slots
+WHERE specialization LIKE '%Dermatologist%';
+
+
+-- NEUROLOGISTS → MORNING ONLY
+INSERT INTO doctor_schedule (doctor_name, day_of_week, slot)
+SELECT name, day, slot
+FROM Doctors
+JOIN (
+    SELECT 'Monday' day UNION SELECT 'Thursday'
+) days
+JOIN (
+    SELECT '9:30 AM' slot UNION SELECT '10:00 AM' UNION SELECT '10:30 AM'
+) slots
+WHERE specialization LIKE '%Neurologist%';
+
+
+-- ORTHOPEDIC → FULL DAY
+INSERT INTO doctor_schedule (doctor_name, day_of_week, slot)
+SELECT name, day, slot
+FROM Doctors
+JOIN (
+    SELECT 'Monday' day UNION SELECT 'Tuesday' UNION SELECT 'Friday'
+) days
+JOIN (
+    SELECT '10:00 AM' slot UNION SELECT '11:00 AM'
+    UNION SELECT '2:00 PM' UNION SELECT '3:00 PM'
+) slots
+WHERE specialization LIKE '%Orthopedic%';
+
+
+-- GENERAL PHYSICIANS → DAILY (HIGH AVAILABILITY)
+INSERT INTO doctor_schedule (doctor_name, day_of_week, slot)
+SELECT name, day, slot
+FROM Doctors
+JOIN (
+    SELECT 'Monday' day UNION SELECT 'Tuesday' UNION SELECT 'Wednesday'
+    UNION SELECT 'Thursday' UNION SELECT 'Friday' UNION SELECT 'Saturday'
+) days
+JOIN (
+    SELECT '9:00 AM' slot UNION SELECT '10:00 AM' UNION SELECT '11:00 AM'
+    UNION SELECT '2:00 PM' UNION SELECT '3:00 PM' UNION SELECT '4:00 PM'
+) slots
+WHERE specialization LIKE '%General Physician%';
+
+
+-- ENT → EVENING
+INSERT INTO doctor_schedule (doctor_name, day_of_week, slot)
+SELECT name, day, slot
+FROM Doctors
+JOIN (
+    SELECT 'Wednesday' day UNION SELECT 'Saturday'
+) days
+JOIN (
+    SELECT '4:00 PM' slot UNION SELECT '5:00 PM'
+) slots
+WHERE specialization LIKE '%ENT%';
+
+
+-- DENTIST → AFTERNOON + EVENING
+INSERT INTO doctor_schedule (doctor_name, day_of_week, slot)
+SELECT name, day, slot
+FROM Doctors
+JOIN (
+    SELECT 'Monday' day UNION SELECT 'Thursday' UNION SELECT 'Saturday'
+) days
+JOIN (
+    SELECT '2:00 PM' slot UNION SELECT '3:00 PM'
+    UNION SELECT '5:00 PM'
+) slots
+WHERE specialization LIKE '%Dentist%';
+
+
+-- GYNECOLOGIST → MORNING + AFTERNOON
+INSERT INTO doctor_schedule (doctor_name, day_of_week, slot)
+SELECT name, day, slot
+FROM Doctors
+JOIN (
+    SELECT 'Tuesday' day UNION SELECT 'Friday'
+) days
+JOIN (
+    SELECT '10:00 AM' slot UNION SELECT '11:00 AM'
+    UNION SELECT '2:00 PM'
+) slots
+WHERE specialization LIKE '%Gynecologist%';
+
+
+-- OPHTHALMOLOGIST → MORNING
+INSERT INTO doctor_schedule (doctor_name, day_of_week, slot)
+SELECT name, day, slot
+FROM Doctors
+JOIN (
+    SELECT 'Monday' day UNION SELECT 'Wednesday'
+) days
+JOIN (
+    SELECT '9:00 AM' slot UNION SELECT '10:00 AM'
+) slots
+WHERE specialization LIKE '%Ophthalmologist%';
+
+
+-- NEPHROLOGIST → LIMITED DAYS
+INSERT INTO doctor_schedule (doctor_name, day_of_week, slot)
+SELECT name, day, slot
+FROM Doctors
+JOIN (
+    SELECT 'Wednesday' day UNION SELECT 'Friday'
+) days
+JOIN (
+    SELECT '11:00 AM' slot UNION SELECT '2:00 PM'
+) slots
+WHERE specialization LIKE '%Nephrologist%';	
+
+
+drop table if exists users ;
+create table users
+(
+id INT auto_increment primary key,
+username varchar(100),
+email varchar(100),
+password varchar(100))
+;
+
+drop table appointments;
+CREATE TABLE appointments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    doctor_name VARCHAR(100),
+    hospital VARCHAR(150),
+    date DATE,
+    time VARCHAR(20),
+    status VARCHAR(20),
+
+    UNIQUE KEY unique_booking (doctor_name, date, time)
+);
