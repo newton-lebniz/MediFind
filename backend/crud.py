@@ -1,15 +1,18 @@
 from sqlalchemy.orm import Session
-from models import Hospitals
+from models import Doctors
 
-def insert_hospital(db: Session, data):
-    existing = db.query(Hospitals).filter(
-        Hospitals.hospital_name == data["hospital_name"],
-        Hospitals.latitude == data["latitude"],
-        Hospitals.longitude == data["longitude"]
+
+def insert_doctor(db: Session, data):
+
+    existing = db.query(Doctors).filter(
+        Doctors.name == data["name"],
+        Doctors.hospital_name == data["hospital_name"]
     ).first()
 
     if existing:
         return
 
-    db.add(Hospitals(**data))
+    doctor = Doctors(**data)
+
+    db.add(doctor)
     db.commit()
