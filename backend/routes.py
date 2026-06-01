@@ -1,17 +1,66 @@
-import sys
-sys.path.append('../vector_search') 
-
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from db import SessionLocal
-from models import Doctors
-from vector_search import classify_message, get_chat_reply, get_chat_reply_with_history, explain_and_recommend, get_doctor, ask_followup_questions, assess_and_offer , extract_symptoms
-import re
-from difflib import get_close_matches
+from backend.db import SessionLocal
+
+from backend.models import (
+    Users,
+    Doctors,
+    Appointments,
+    DoctorSchedule
+)
+
+from backend.vector_search import (
+    classify_message,
+    generate_followup,
+    get_doctor,
+    get_chat_reply,
+    explain_and_recommend
+)
+
+from pydantic import BaseModel
+from typing import List, Optional
+
+from datetime import date
+
+import math
 
 router = APIRouter()
 
+# =========================================
+# SCHEMAS
+# =========================================
+
+class SignupRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class SymptomRequest(BaseModel):
+    symptom: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    followup_stage: int = 0
+    conversation: List[str] = []
+    doctor_type: Optional[str] = None
+
+
+class BookingRequest(BaseModel):
+    user_id: int
+    doctor_name: str
+    hospital: str
+    date: str
+    time: str
+
+
+# =========================================
+# DATABASE
+# =========================================
 
 def get_db():
     db = SessionLocal()
@@ -21,164 +70,360 @@ def get_db():
         db.close()
 
 
-# 🔥 Get all cities dynamically (normalized)
-def get_all_cities(db):
-    cities = db.query(Doctors.city).distinct().all()
-    return list(set([c[0].strip().lower() for c in cities if c[0]]))
+# =========================================
+# DISTANCE (Haversine)
+# =========================================
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+
+    if None in (lat1, lon1, lat2, lon2):
+        return 9999
+
+    R    = 6371
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(dlon / 2) ** 2
+    )
+
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
-# 🔥 Extract city (case + typo + flexible)
-def extract_city(text, db):
-    text = text.lower()
-    cities = get_all_cities(db)
+# =========================================
+# SIGNUP
+# =========================================
 
-    # pattern: from/in/at
-    match = re.search(r"(?:from|in|at)\s+([a-z]+)", text)
-    if match:
-        word = match.group(1)
-        best = get_close_matches(word, cities, n=1, cutoff=0.6)
-        if best:
-            return best[0]
+@router.post("/signup")
+def signup(data: SignupRequest, db: Session = Depends(get_db)):
 
-    # fallback: scan all words
-    words = re.findall(r"[a-z]+", text)
-    for w in words:
-        best = get_close_matches(w, cities, n=1, cutoff=0.75)
-        if best:
-            return best[0]
+    existing = (
+        db.query(Users)
+        .filter(Users.email == data.email)
+        .first()
+    )
 
-    return None
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    user = Users(
+        username=data.username,
+        email=data.email,
+        password=data.password          # stored as-is — no hashing
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "message":  "Signup successful",
+        "id":       user.id,
+        "username": user.username,
+        "email":    user.email
+    }
 
 
-# 🔥 Extract hospital (case insensitive)
-def extract_hospital(text, db):
-    text = text.lower()
-    hospitals = db.query(Doctors.hospital_name).distinct().all()
-    hospitals = [h[0].strip().lower() for h in hospitals if h[0]]
+# =========================================
+# LOGIN
+# =========================================
 
-    for h in hospitals:
-        if h in text:
-            return h
-    return None
+@router.post("/login")
+def login(data: LoginRequest, db: Session = Depends(get_db)):
 
+    user = (
+        db.query(Users)
+        .filter(Users.email == data.email)
+        .first()
+    )
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # Plain comparison — works for every account regardless of
+    # when it was created, because we no longer hash anything.
+    if user.password != data.password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    return {
+        "id":       user.id,
+        "username": user.username,
+        "email":    user.email
+    }
+
+
+# =========================================
+# PREDICT
+# =========================================
 
 @router.post("/predict")
-async def predict(request: Request, db: Session = Depends(get_db)):
-    data = await request.json()
-    message = data.get("symptom", "")
-    if not message.strip():
-     return {"type": "chat", "reply": "Please describe your symptoms so I can help you."}
-    history = data.get("history", [])
-    waiting_for_city = data.get("waiting_for_city", False)
-    doctor_type_pending = data.get("doctor_type", None)
-    offer_accepted = data.get("offer_accepted", False)
-    waiting_for_answers = data.get("waiting_for_answers",None)
-    original_symptom = data.get("original_symptom",None)
-
-    # EMERGENCY — always first
-    emergency_keywords = [
-        "took too many pills", "too many pills", "overdosed", "overdose",
-    "can't breathe", "cannot breathe", "shortness of breath", "airway blocked",
-    "choking", "someone is choking", "choking me", "suffocating", "drowning",
-    "coughing blood", "vomiting blood", "spitting blood", "heavy bleeding",
-    "bleeding heavily", "won't stop bleeding",
-    "heart attack", "severe chest pain", "chest pain right now",
-    "tight chest", "chest pressure", "left arm pain",
-    "unconscious", "fainted", "passed out", "blacked out",
-    "stabbed", "shot", "being attacked", "can't swallow", "throat blocked",
-    "stuck in", "stuck up", "foreign body", "bottle stuck", "something stuck",
-    "stroke", "face drooping", "arm weak", "speech slurred",
-    "poisoned", "swallowed poison",
-    "paralyzed", "can't move", "seizure", "fits", "convulsions"
-    ]
-    
-    if any(kw in message.lower() for kw in emergency_keywords):
-        return {
-            "type": "chat",
-            "reply": "🚨 This sounds like a medical emergency! Please call 112 immediately or go to your nearest emergency room. Do not wait. 🚨"
-        }
-
-    # CRISIS
-    crisis_keywords = ["kill myself", "suicide", "end my life", "want to die", "hurt myself", "self harm"]
-    if any(kw in message.lower() for kw in crisis_keywords):
-        return {
-            "type": "chat",
-            "reply": "I'm really concerned. Please call iCall at 9152987821 immediately — free and confidential. You are not alone. 💙"
-        }
+def predict(data: SymptomRequest):
 
     try:
-        
-        if offer_accepted and doctor_type_pending:
+
+        symptom      = data.symptom.strip()
+        conversation = data.conversation.copy()
+        stage        = data.followup_stage
+
+        # ── First message ─────────────────────────────
+        if stage == 0:
+
+            classification = classify_message(symptom)
+            print("CLASSIFICATION:", classification)
+
+            if classification == "CHAT":
+                return {
+                    "success": True,
+                    "type":    "chat",
+                    "reply":   get_chat_reply(symptom)
+                }
+
+            if classification == "QUESTION":
+                return {
+                    "success": True,
+                    "type":    "chat",
+                    "reply":   explain_and_recommend(symptom)
+                }
+
+            if classification == "VAGUE":
+                return {
+                    "success": True,
+                    "type":    "chat",
+                    "reply":   "Could you describe your symptoms more clearly?"
+                }
+
+            if classification == "EMERGENCY":
+                return {
+                    "success": True,
+                    "type":    "emergency",
+                    "reply":   (
+                        "🚨 This sounds like a medical emergency! "
+                        "Please call emergency services immediately.\n\n"
+                        "🇮🇳 India Emergency Numbers:\n"
+                        "📞 Ambulance: 108\n"
+                        "📞 National Emergency: 112\n"
+                        "📞 Police: 100\n\n"
+                        "Do not wait — call now or ask someone near you to help."
+                    )
+                }
+
+            if classification == "SYMPTOM":
+                conversation.append(symptom)
+                question = generate_followup(" ".join(conversation))
+                print("FOLLOWUP:", question)
+                return {
+                    "success":      True,
+                    "type":         "followup_question",
+                    "reply":        question,
+                    "stage":        1,
+                    "conversation": conversation
+                }
+
+            # fallback
             return {
-                "type": "ask_city",
-                "doctor_type": doctor_type_pending,
-                "reply": f"Great! Which city are you in? I'll find the best {doctor_type_pending} near you."
+                "success": True,
+                "type":    "chat",
+                "reply":   "Please explain your symptoms clearly."
             }
 
-        # User gave city — show doctors
-        if waiting_for_city and doctor_type_pending:
-             # Reject nonsense city inputs
-            invalid_inputs = ["ok", "okay", "yes", "no", "sure", "fine", "k", "hmm", "idk"]
-            if message.strip().lower() in invalid_inputs:
-                  return {
-            "type": "ask_city",
-            "doctor_type": doctor_type_pending,
-            "reply": "I didn't catch that — could you tell me which city you're in? For example: Raichur, Bangalore, Mumbai."
-        }
+        # ── Followup continuation ──────────────────────
+        conversation.append(symptom)
 
-            city = extract_city(message, db)
-            if not city:
-                city = message.strip().capitalize()
-            doctors = db.query(Doctors).filter(
-                func.lower(Doctors.specialization) == doctor_type_pending.lower(),
-                func.lower(Doctors.city) == city.lower()
-            ).order_by(Doctors.rating.desc()).all()
-            if not doctors:
-                doctors = db.query(Doctors).filter(
-                    func.lower(Doctors.specialization) == doctor_type_pending.lower()
-                ).order_by(Doctors.rating.desc()).all()
-            result = [{"doctor": d.name, "hospital": d.hospital_name,
-                       "area": d.city, "rating": float(d.rating),
-                       "speciality": d.specialization, "best": i == 0}
-                      for i, d in enumerate(doctors)]
-            return {"type": "symptom", "doctor_type": doctor_type_pending, "doctors": result[:5]}
-
-        #User answered the follow up questions 
-        if waiting_for_answers and original_symptom:
-            doctor_type = get_doctor(extract_symptoms(original_symptom))
-            assessment = assess_and_offer(original_symptom,message,history)
-            return{
-                "type":"offer_doctors",
-                "doctor_type": doctor_type,
-                "reply": assessment
-            }
-
-        classification = classify_message(message)
-
-        if classification == "EMERGENCY":
+        if stage < 3:
+            question = generate_followup(" ".join(conversation))
+            print("FOLLOWUP:", question)
             return {
-                "type": "chat",
-                "reply": "🚨 This sounds serious! Please call 112 immediately or go to your nearest emergency room. Do not wait. 🚨"
+                "success":      True,
+                "type":         "followup_question",
+                "reply":        question,
+                "stage":        stage + 1,
+                "conversation": conversation
             }
 
-        elif classification == "CHAT":
-            return {"type": "chat", "reply": get_chat_reply_with_history(message, history)}
-
-        elif classification == "QUESTION":
-            return {"type": "chat", "reply": explain_and_recommend(message)}
-
-        elif classification == "VAGUE":
-            return {"type": "chat", "reply": get_chat_reply_with_history(message, history)}
-
-        # SYMPTOM FLOW — triage first, offer doctors
-        questions = ask_followup_questions(message,history)
+        # ── Final recommendation ───────────────────────
+        doctor_type = get_doctor(" ".join(conversation))
 
         return {
-            "type": "ask_questions",
-            "original_symptom": message,
-            "reply": questions
+            "success":      True,
+            "type":         "followup_complete",
+            "reply":        f"Based on your symptoms, you may consult a {doctor_type}. Would you like doctor recommendations?",
+            "doctor_type":  doctor_type,
+            "conversation": conversation
         }
 
     except Exception as e:
-        print("ERROR:", e)
-        return {"error": str(e)}
+        print("PREDICT ERROR:", str(e))
+        return {
+            "success": False,
+            "type":    "chat",
+            "reply":   "Server error"
+        }
+
+
+# =========================================
+# RECOMMEND DOCTORS
+# =========================================
+
+@router.post("/recommend")
+def recommend(data: SymptomRequest, db: Session = Depends(get_db)):
+
+    doctor_type = data.doctor_type or get_doctor(data.symptom)
+
+    doctors = (
+        db.query(Doctors)
+        .filter(Doctors.specialization.ilike(f"%{doctor_type}%"))
+        .all()
+    )
+
+    results = []
+
+    for d in doctors:
+
+        distance = calculate_distance(
+            data.lat, data.lng,
+            d.latitude, d.longitude
+        )
+
+        results.append({
+            "doctor":    d.name,
+            "hospital":  d.hospital_name,
+            "speciality": d.specialization,
+            "area":      d.city,
+            "rating":    d.rating,
+            "distance":  distance,
+            "maps":      f"https://www.google.com/maps/search/{d.latitude},{d.longitude}"
+        })
+
+    results.sort(key=lambda x: x["distance"])
+
+    for i, r in enumerate(results):
+        r["best"] = (i == 0)
+
+    return {
+        "type":        "symptom",
+        "doctor_type": doctor_type,
+        "doctors":     results[:5]
+    }
+
+
+# =========================================
+# GET SLOTS
+# =========================================
+
+@router.get("/slots/{doctor_name}")
+def get_slots(doctor_name: str, db: Session = Depends(get_db)):
+
+    slots = (
+        db.query(DoctorSchedule)
+        .filter(DoctorSchedule.doctor_name == doctor_name)
+        .all()
+    )
+
+    return {"slots": [s.slot for s in slots]}
+
+
+# =========================================
+# BOOK APPOINTMENT
+# =========================================
+
+@router.post("/book")
+def book(data: BookingRequest, db: Session = Depends(get_db)):
+
+    doctor = (
+        db.query(Doctors)
+        .filter(Doctors.name == data.doctor_name)
+        .first()
+    )
+
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+
+    appointment = Appointments(
+        user_id=data.user_id,
+        doctor_name=data.doctor_name,
+        hospital=data.hospital,
+        date=data.date,
+        time=data.time,
+        status="Upcoming"
+    )
+
+    db.add(appointment)
+    db.commit()
+
+    return {"message": "Appointment booked"}
+
+
+# =========================================
+# GET APPOINTMENTS
+# =========================================
+
+@router.get("/appointments/{user_id}")
+def get_appointments(user_id: int, db: Session = Depends(get_db)):
+
+    appointments = (
+        db.query(Appointments)
+        .filter(Appointments.user_id == user_id)
+        .all()
+    )
+
+    today    = str(date.today())
+    upcoming = []
+    previous = []
+
+    for a in appointments:
+
+        doctor = (
+            db.query(Doctors)
+            .filter(Doctors.name == a.doctor_name)
+            .first()
+        )
+
+        city       = doctor.city            if doctor else ""
+        speciality = doctor.specialization  if doctor else ""
+        maps       = (
+            f"https://www.google.com/maps/search/{doctor.latitude},{doctor.longitude}"
+            if doctor else ""
+        )
+
+        obj = {
+            "id":        a.id,
+            "doctor":    a.doctor_name,
+            "hospital":  a.hospital,
+            "city":      city,
+            "speciality": speciality,
+            "date":      str(a.date),
+            "time":      a.time,
+            "maps":      maps
+        }
+
+        if str(a.date) >= today:
+            upcoming.append(obj)
+        else:
+            previous.append(obj)
+
+    return {"upcoming": upcoming, "previous": previous}
+
+
+# =========================================
+# CANCEL APPOINTMENT
+# =========================================
+
+@router.delete("/cancel/{appointment_id}")
+def cancel_appointment(appointment_id: int, db: Session = Depends(get_db)):
+
+    appointment = (
+        db.query(Appointments)
+        .filter(Appointments.id == appointment_id)
+        .first()
+    )
+
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    db.delete(appointment)
+    db.commit()
+
+    return {"message": "Appointment cancelled"}
