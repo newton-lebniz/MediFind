@@ -1,32 +1,40 @@
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+
 from dotenv import load_dotenv
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+# FIX: declarative_base moved to sqlalchemy.orm in SQLAlchemy 1.4+
+# The old sqlalchemy.ext.declarative path is removed in SQLAlchemy 2.x.
+from sqlalchemy.orm import declarative_base
+
 from urllib.parse import quote_plus
 
 load_dotenv()
 
-# Get values
-user = os.getenv("MYSQL_USER")
-raw_password = os.getenv("MYSQL_PASSWORD")
-host = os.getenv("MYSQL_HOST")
-db = os.getenv("MYSQL_DB")
+MYSQL_USER     = os.getenv("MYSQL_USER")
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
+MYSQL_HOST     = os.getenv("MYSQL_HOST")
+MYSQL_DB       = os.getenv("MYSQL_DB")
 
-print("RAW PASSWORD:", raw_password)  # debug
+# Encode special characters in password (e.g. @, #, %)
+ENCODED_PASSWORD = quote_plus(MYSQL_PASSWORD)
 
-# Encode password (important for @)
-password = quote_plus(raw_password)
+DATABASE_URL = (
+    f"mysql+pymysql://"
+    f"{MYSQL_USER}:"
+    f"{ENCODED_PASSWORD}@"
+    f"{MYSQL_HOST}/"
+    f"{MYSQL_DB}"
+)
 
-# Create DB URL
-DATABASE_URL = f"mysql+pymysql://{user}:{password}@{host}/{db}"
-
-print("DB URL:", DATABASE_URL)
-
-# Create engine
 engine = create_engine(DATABASE_URL)
 
-# Session
-SessionLocal = sessionmaker(bind=engine)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
 
-# Base (IMPORTANT)
 Base = declarative_base()
