@@ -1,314 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>MediFind Chat</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: #f0f4f8;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
+    <meta charset="UTF-8">
 
-        .chat-container {
-            width: 460px;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            overflow: hidden;
-        }
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
-        .chat-header {
-            background: #0f766e;
-            color: white;
-            padding: 16px 20px;
-            font-size: 17px;
-            font-weight: 600;
-        }
+    <title>MediFind</title>
 
-        .chat-header span {
-            font-size: 12px;
-            font-weight: 400;
-            opacity: 0.7;
-            display: block;
-            margin-top: 2px;
-        }
+    <link rel="stylesheet"
+          href="/static/style.css">
 
-        .chat-box {
-            height: 360px;
-            overflow-y: scroll;
-            padding: 16px;
-            background: #f8fafc;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .chat-box::-webkit-scrollbar { width: 4px; }
-        .chat-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-
-        .user {
-            color: white;
-            background: #0f766e;
-            padding: 8px 14px;
-            border-radius: 14px;
-            border-bottom-right-radius: 4px;
-            font-size: 13.5px;
-            align-self: flex-end;
-            max-width: 80%;
-        }
-
-        .bot {
-            color: #1e293b;
-            background: white;
-            padding: 8px 14px;
-            border-radius: 14px;
-            border-bottom-left-radius: 4px;
-            font-size: 13.5px;
-            border: 1px solid #e2e8f0;
-            align-self: flex-start;
-            max-width: 85%;
-            line-height: 1.6;
-        }
-
-        .card {
-            border: 1px solid #e2e8f0;
-            padding: 10px 12px;
-            margin: 6px 0;
-            border-radius: 10px;
-            background: #f8fafc;
-            cursor: pointer;
-            transition: background 0.15s;
-            font-size: 13px;
-            line-height: 1.7;
-        }
-
-        .card:hover {
-            background: #e0f2fe; }
-
-        .best {
-            border: 2px solid #f59e0b;
-            background: #fffbeb;
-        }
-
-        .chat-footer {
-            padding: 14px 16px;
-            border-top: 1px solid #e2e8f0;
-            display: flex;
-            gap: 8px;
-        }
-
-        input {
-            flex: 1;
-            padding: 9px 14px;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 10px;
-            font-family: 'Poppins', sans-serif;
-            font-size: 13.5px;
-            outline: none;
-            color: #1e293b;
-        }
-
-        input:focus { border-color: #0f766e; }
-
-        button {
-            padding: 9px 18px;
-            background: #0f766e;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-family: 'Poppins', sans-serif;
-            font-size: 13.5px;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        button:hover { background: #0d6560; }
-    </style>
 </head>
 
 <body>
 
-<div class="chat-container">
-    <div class = "chat-header">
-        🏥 MediFind
-    </div>
+<div class="layout">
 
-    <div class="chat-box" id="chatBox">
-        <div class="bot">Hello! Tell me your symptoms.</div>
-    </div>
+    <!-- LEFT SIDEBAR -->
 
-    <div class = "chat-footer">
-    <input type="text" id="userInput" placeholder="Type here..." onkeypress="handleEnter(event)">
-    <button onclick="sendMessage()">Send</button>
-</div>
-</div>
+    <div class="left-sidebar">
 
-<script>
+        <h2 id="profileName">
+            User
+        </h2>
 
-let chatBox = document.getElementById("chatBox");
-let chatHistory = [];
+        <p id="profileEmail">
+            Email
+        </p>
 
-window.pendingDoctorType = null;
-window.waitingForAnswers = false;
-window.originalSymptom = null;
-
-function addUser(text) {
-    chatBox.innerHTML += `<div class="user">${text}</div>`;
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-function addBot(html) {
-    chatBox.innerHTML += `<div class="bot">${html}</div>`;
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-async function sendMessage() {
-
-    const input = document.getElementById("userInput");
-    const text = input.value.trim();
-
-    if (!text) return;
-
-    addUser(text);
-    chatHistory.push({"role": "user", "content":text})
-    input.value = "";
-    addBot("..");
-
-    try {
-        const res = await fetch("http://127.0.0.1:8000/predict", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ 
-            symptom: text,
-            history: chatHistory,
-            waiting_for_city: window.pendingDoctorType ? true : false,
-            doctor_type: window.pendingDoctorType || null,
-            waiting_for_answers: window.waitingForAnswers,
-            original_symptom: window.originalSymptom
-                 })
-        });
-
-        const data = await res.json();
-
-        // remove "..."
-        const dots = chatBox.querySelectorAll(".bot");
-        dots[dots.length - 1].remove();
-
-        if(data.error){
-            addBot("Server error,try again.");
-            return;
-        }
-
-        if (data.type === "chat") {
-            addBot(data.reply);
-            chatHistory.push({"role": "assistant", "content": data.reply});
-            window.waitingForAnswers=false;
-            return;
-        }
-
-        if(data.type === "ask_questions"){
-            window.waitingForAnswers=true;
-            window.originalSymptom=data.original_symptom;
-            window.pendingDoctorType=null;
-            addBot(data.reply);
-            chatHistory.push({"role":"assistant","content":data.reply});
-            return;
-        }
-
-        if (data.type === "offer_doctors") {
-            window.waitingForAnswers=false;
-        addBot(data.reply + `<br><br>
-        <button onclick="acceptDoctors('${data.doctor_type}')"
-            style="background:#0f766e;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;margin-right:8px;font-family:Poppins,sans-serif">
-            Yes, find doctors 🏥
+        <button onclick="resetChat()">
+            Reset Chat
         </button>
-        <button onclick="declineDoctors()" 
-            style="background:#e2e8f0;color:#1e293b;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:Poppins,sans-serif">
-            No thanks
-        </button>`);
-        chatHistory.push({"role": "assistant", "content": data.reply});
-        return;
-        }
 
-        if(data.type === "ask_city"){
-            addBot(data.reply);
-            window.pendingDoctorType = data.doctor_type;
-            chatHistory.push({"role": "assistant", "content":data.reply});
-            return;
-        }
+        <button onclick="switchAccount()">
+            Switch Account
+        </button>
 
-        //symptom responsee
-        window.pendingDoctorType = null;
-        let html = `<b>🩺 ${data.doctor_type}</b><br><br>`;
+        <button onclick="logout()">
+            Logout
+        </button>
 
-        data.doctors.forEach(d => {
+    </div>
 
-            let badge = d.best ? "⭐ BEST DOCTOR<br>" : "";
+    <!-- MAIN CHAT -->
 
-            html += `
-                <div class="card ${d.best ? "best" : ""}" 
-                     onclick="alert('Hospital: ${d.hospital}')">
-                    ${badge}
-                    👨‍⚕️ <b>${d.doctor}</b><br>
-                    🏥 ${d.hospital}<br>
-                    📍 ${d.area}<br>
-                    ⭐ ${d.rating}<br>
-                    🩺 ${d.speciality}
-                </div>
-            `;
-        });
+    <div class="main-chat">
 
-        addBot(html);
-        chatHistory.push({"role": "assistant", "content": data.doctor_type});
+        <div class="chat-header"
+             id="cityHeader">
 
-    } catch (err) {
-        const dots = chatBox.querySelectorAll(".bot");
-        if(dots.length) dots[dots.length - 1].remove();
-        addBot("Server error. Try again.");
-    }
-}
+            🏥 MediFind
 
-function acceptDoctors(doctorType) {
-    window.pendingDoctorType = doctorType;
-    addUser("Yes, find doctors");
-    chatHistory.push({"role": "user", "content": "yes find doctors"});
+        </div>
 
-    fetch("http://127.0.0.1:8000/predict", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            symptom: "yes",
-            offer_accepted: true,
-            doctor_type: doctorType,
-            history: chatHistory
-        })
-    }).then(r => r.json()).then(data => {
-        addBot(data.reply);
-            window.pendingDoctorType = data.doctor_type;
-            chatHistory.push({"role":"assistant","content": data.reply});
-    });
-}
+        <div class="chat-box"
+             id="chatBox">
 
-function declineDoctors() {
-    window.waitingForAnswers=false;
-    window.originalSymptom=null;
-    addBot("No problem! Feel free to ask if you need anything else. 😊");
-    chatHistory.push({"role": "assistant", "content": "User declined doctor search"});
-}
+            <div class="bot">
+                Hello! Tell me your symptoms.
+            </div>
 
-function handleEnter(e) {
-    if (e.key === "Enter") sendMessage();
-}
+        </div>
 
+        <div class="chat-footer">
 
+            <input
+                id="userInput"
+                placeholder="Enter symptoms"
+                onkeypress="handleEnter(event)"
+            >
 
-</script>
+            <button onclick="sendMessage()">
+                Send
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+
+    <div class="right-sidebar">
+
+        <h3>
+            Upcoming Appointments
+        </h3>
+
+        <div id="upcomingAppointments"></div>
+
+        <h3 style="margin-top:30px;">
+            Previous Appointments
+        </h3>
+
+        <div id="previousAppointments"></div>
+
+    </div>
+
+</div>
+
+<!-- BOOKING MODAL -->
+
+<div class="modal"
+     id="bookingModal">
+
+    <div class="modal-content">
+
+        <h2>
+            Book Appointment
+        </h2>
+
+        <p id="bookingDoctor"></p>
+
+        <input
+            type="date"
+            id="appointmentDate"
+        >
+
+        <select id="slotSelect">
+
+            <option value="">
+                Select Slot
+            </option>
+
+        </select>
+
+        <div class="modal-buttons">
+
+            <button onclick="confirmBooking()">
+                Confirm
+            </button>
+
+            <button onclick="closeModal()">
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="/static/app.js"></script>
 
 </body>
 </html>
